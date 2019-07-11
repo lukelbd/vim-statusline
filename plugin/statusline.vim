@@ -38,6 +38,7 @@ function! PrintMode()
     \ 'c':  'Command', 'r' : 'Prompt',
     \ 'cv': 'Vim Ex',  'ce': 'Ex',
     \ 'rm': 'More',    'r?': 'Confirm', '!' : 'shell',
+    \ 't':  'Terminal',
     \}
   let string=currentmode[mode()]
   if &paste
