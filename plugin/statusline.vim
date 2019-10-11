@@ -11,17 +11,17 @@
 set showcmd "command line below statusline
 set noshowmode
 set laststatus=2 "always show
-let g:nostatus="tagbar,nerdtree"
-let &stl=''
-let &stl.='%{ShortName()}'     "current buffer's file name
-let &stl.='%{Git()}'           "output buffer's file size
-let &stl.='%{FileInfo()}'      "output buffer's file size
-let &stl.='%{PrintMode()}'     "normal/insert mode
-let &stl.='%{PrintLanguage()}' "show language setting: UK english or US enlish
-let &stl.='%{CapsLock()}'      "check if language maps enabled
-let &stl.='%='            "right side of statusline, and perserve space between sides
-let &stl.='%{Tag()}'      "ctags tag under cursor
-let &stl.='%{Location()}' "cursor's current line, total lines, and percentage
+let g:nostatus = "tagbar,nerdtree"
+let &stl = ''
+let &stl .= '%{ShortName()}'     "current buffer's file name
+let &stl .= '%{Git()}'           "output buffer's file size
+let &stl .= '%{FileInfo()}'      "output buffer's file size
+let &stl .= '%{PrintMode()}'     "normal/insert mode
+let &stl .= '%{PrintLanguage()}' "show language setting: UK english or US enlish
+let &stl .= '%{CapsLock()}'      "check if language maps enabled
+let &stl .= '%='            "right side of statusline, and perserve space between sides
+let &stl .= '%{Tag()}'      "ctags tag under cursor
+let &stl .= '%{Location()}' "cursor's current line, total lines, and percentage
 
 "Define all the different modes
 "Show whether in pastemode
@@ -30,7 +30,7 @@ function! PrintMode()
   if &ft && g:nostatus=~?&ft
     return ''
   endif
-  let currentmode={
+  let currentmode = {
     \ 'n':  'Normal',  'no': 'N-Operator Pending',
     \ 'v':  'Visual',  'V' : 'V-Line',  '': 'V-Block',
     \ 's':  'Select',  'S' : 'S-Line',  '': 'S-Block',
@@ -40,9 +40,9 @@ function! PrintMode()
     \ 'rm': 'More',    'r?': 'Confirm', '!' : 'shell',
     \ 't':  'Terminal',
     \}
-  let string=currentmode[mode()]
+  let string = currentmode[mode()]
   if &paste
-    let string.=':Paste'
+    let string .= ':Paste'
   endif
   return '  ['.string.']'
 endfunction
@@ -77,11 +77,11 @@ function! ShortName() "{{{
     return ''
   endif
   "Necessary args
-  let bufname=@%
-  let maxlen=20
+  let bufname = @%
+  let maxlen = 20
   "Replace home directory
   if bufname=~$HOME
-    let bufname='~'.split(bufname,$HOME)[-1]
+    let bufname = '~'.split(bufname,$HOME)[-1]
   endif
   "Body
   let maxlen_of_parts = 7 " including slash/dot
@@ -132,8 +132,8 @@ function! FileInfo() "{{{
     return ''
   endif
   "File type
-  if &ft=="" | let string="unknown:"
-  else | let string=&ft.":"
+  if &ft=="" | let string = "unknown:"
+  else | let string = &ft.":"
   endif
   "File size
   let bytes = getfsize(expand('%:p'))
@@ -144,14 +144,14 @@ function! FileInfo() "{{{
     let mbytes = kbytes / 1000
   endif
   if bytes <= 0
-    let string.='null'
+    let string .= 'null'
   endif
   if (exists('mbytes'))
-    let string.=(mbytes.'MB')
+    let string .= (mbytes.'MB')
   elseif (exists('kbytes'))
-    let string.=(kbytes.'KB')
+    let string .= (kbytes.'KB')
   else
-    let string.=(bytes.'B')
+    let string .= (bytes.'B')
   endif
   if &ft && g:nostatus=~?&ft
     return ''
@@ -187,30 +187,30 @@ endfunction
 
 "Tags using tagbar
 function! Tag()
-  let maxlen=10 "can change this
+  let maxlen = 10 "can change this
   if &ft && g:nostatus=~?&ft
     return ''
   endif
   if !exists('*tagbar#currenttag') | return '' | endif
-  let string=tagbar#currenttag('%s','')
+  let string = tagbar#currenttag('%s','')
   if string=='' | return '' | endif
-  if len(string)>=maxlen | let string=string[:maxlen-1].'···' | endif
+  if len(string)>=maxlen | let string = string[:maxlen-1].'···' | endif
   return '  ['.string.']'
 endfunction
 "Tags with custom function
-"   let a:njumps=(a:n==0 ? 1 : a:n)
+"   let a:njumps = (a:n==0 ? 1 : a:n)
 "   for i in range(a:njumps)
-"     let lnum=line('.')
+"     let lnum = line('.')
 "     if lnum<b:ctaglines[0] || lnum>b:ctaglines[-1]
-"       let i=(a:foreward ? 0 : -1)
+"       let i = (a:foreward ? 0 : -1)
 "     elseif lnum==b:ctaglines[-1]
-"       let i=(a:foreward ? 0 : -2)
+"       let i = (a:foreward ? 0 : -2)
 "     else
 "       for i in range(len(b:ctaglines)-1)
 "         if lnum==b:ctaglines[i]
-"           let i=(a:foreward ? i+1 : i-1) | break
+"           let i = (a:foreward ? i+1 : i-1) | break
 "         elseif lnum>b:ctaglines[i] && lnum<b:ctaglines[i+1]
-"           let i=(a:foreward ? i+1 : i) | break
+"           let i = (a:foreward ? i+1 : i) | break
 "         endif
 "         if i==len(b:ctaglines)-1 | echom "Error: Bracket jump failed." | endif
 "       endfor
