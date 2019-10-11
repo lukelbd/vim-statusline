@@ -7,26 +7,26 @@
 "------------------------------------------------------------------------------
 " Custom statusline modification
 "------------------------------------------------------------------------------
-"Initial stuff
-set showcmd "command line below statusline
+" Initial stuff
+set showcmd " command line below statusline
 set noshowmode
-set laststatus=2 "always show
+set laststatus=2 " always show
 let g:nostatus = "tagbar,nerdtree"
 let &stl = ''
-let &stl .= '%{ShortName()}'     "current buffer's file name
-let &stl .= '%{Git()}'           "output buffer's file size
-let &stl .= '%{FileInfo()}'      "output buffer's file size
-let &stl .= '%{PrintMode()}'     "normal/insert mode
-let &stl .= '%{PrintLanguage()}' "show language setting: UK english or US enlish
-let &stl .= '%{CapsLock()}'      "check if language maps enabled
-let &stl .= '%='            "right side of statusline, and perserve space between sides
-let &stl .= '%{Tag()}'      "ctags tag under cursor
-let &stl .= '%{Location()}' "cursor's current line, total lines, and percentage
+let &stl .= '%{ShortName()}'     " current buffer's file name
+let &stl .= '%{Git()}'           " output buffer's file size
+let &stl .= '%{FileInfo()}'      " output buffer's file size
+let &stl .= '%{PrintMode()}'     " normal/insert mode
+let &stl .= '%{PrintLanguage()}' " show language setting: UK english or US enlish
+let &stl .= '%{CapsLock()}'      " check if language maps enabled
+let &stl .= '%='            " right side of statusline, and perserve space between sides
+let &stl .= '%{Tag()}'      " ctags tag under cursor
+let &stl .= '%{Location()}' " cursor's current line, total lines, and percentage
 
-"Define all the different modes
-"Show whether in pastemode
+" Define all the different modes
+" Show whether in pastemode
 function! PrintMode()
-  "Dictionary
+  " Dictionary
   if &ft && g:nostatus=~?&ft
     return ''
   endif
@@ -47,9 +47,9 @@ function! PrintMode()
   return '  ['.string.']'
 endfunction
 
-"Caps lock (are language maps enabled?)
-"iminsert is the option that enables/disables language remaps (lnoremap) that
-"I use for caps-lock, and if it is on, we have turned on the caps-lock remaps
+" Caps lock (are language maps enabled?)
+" iminsert is the option that enables/disables language remaps (lnoremap) that
+" I use for caps-lock, and if it is on, we have turned on the caps-lock remaps
 function! CapsLock()
   if &ft && g:nostatus=~?&ft
     return ''
@@ -61,7 +61,7 @@ function! CapsLock()
   endif
 endfunction
 
-"Git branch
+" Git branch
 function! Git()
   if exists('*fugitive#head') && fugitive#head()!=''
     return '  ('.fugitive#head().')'
@@ -70,20 +70,20 @@ function! Git()
   endif
 endfunction
 
-"Shorten a given filename by truncating path segments.
-"https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
-function! ShortName() "{{{
+" Shorten a given filename by truncating path segments.
+" https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
+function! ShortName() " {{{
   if &ft && g:nostatus=~?&ft
     return ''
   endif
-  "Necessary args
+  " Necessary args
   let bufname = @%
   let maxlen = 20
-  "Replace home directory
+  " Replace home directory
   if bufname=~$HOME
     let bufname = '~'.split(bufname,$HOME)[-1]
   endif
-  "Body
+  " Body
   let maxlen_of_parts = 7 " including slash/dot
   let maxlen_of_subparts = 5 " split at dot/hypen/underscore; including split
   let s:PS = exists('+shellslash') ? (&shellslash ? '/' : '\') : "/"
@@ -123,19 +123,19 @@ function! ShortName() "{{{
   endwhile
   let r = join(parts, '')
   return r
-endfunction "}}}
+endfunction " }}}
 
-"Find out current buffer's size and output it.
-"Also add git branch if available
-function! FileInfo() "{{{
+" Find out current buffer's size and output it.
+" Also add git branch if available
+function! FileInfo() " {{{
   if &ft && g:nostatus=~?&ft
     return ''
   endif
-  "File type
+  " File type
   if &ft=="" | let string = "unknown:"
   else | let string = &ft.":"
   endif
-  "File size
+  " File size
   let bytes = getfsize(expand('%:p'))
   if (bytes >= 1024)
     let kbytes = bytes / 1024
@@ -157,9 +157,9 @@ function! FileInfo() "{{{
     return ''
   endif
   return '  ['.string.']'
-endfunction "}}}
+endfunction " }}}
 
-"Whether UK english (e.g. Nature), or U.S. english
+" Whether UK english (e.g. Nature), or U.S. english
 function! PrintLanguage()
   if &ft && g:nostatus=~?&ft
     return ''
@@ -177,17 +177,17 @@ function! PrintLanguage()
   endif
 endfunction
 
-"Location
+" Location
 function! Location()
   if &ft && g:nostatus=~?&ft
     return ''
   endif
-  return '  ['.line('.').'/'.line('$').'] ('.(100*line('.')/line('$')).'%)' "current line and percentage
+  return '  ['.line('.').'/'.line('$').'] ('.(100*line('.')/line('$')).'%)' " current line and percentage
 endfunction
 
-"Tags using tagbar
+" Tags using tagbar
 function! Tag()
-  let maxlen = 10 "can change this
+  let maxlen = 10 " can change this
   if &ft && g:nostatus=~?&ft
     return ''
   endif
@@ -197,7 +197,7 @@ function! Tag()
   if len(string)>=maxlen | let string = string[:maxlen-1].'···' | endif
   return '  ['.string.']'
 endfunction
-"Tags with custom function
+" Tags with custom function
 "   let a:njumps = (a:n==0 ? 1 : a:n)
 "   for i in range(a:njumps)
 "     let lnum = line('.')
