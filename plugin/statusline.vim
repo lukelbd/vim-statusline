@@ -193,12 +193,12 @@ function! Tag()
   endif
   if !exists('*tagbar#currenttag') | return '' | endif
   let string = tagbar#currenttag('%s','')
-  if string=='' | return '' | endif
-  if len(string)>=maxlen | let string = string[:maxlen-1].'···' | endif
+  if string == '' | return '' | endif
+  if len(string) >= maxlen | let string = string[:maxlen-1].'···' | endif
   return '  ['.string.']'
 endfunction
 " Tags with custom function
-"   let a:njumps = (a:n==0 ? 1 : a:n)
+"   let a:njumps = (a:n == 0 ? 1 : a:n)
 "   for i in range(a:njumps)
 "     let lnum = line('.')
 "     if lnum<b:ctaglines[0] || lnum>b:ctaglines[-1]
@@ -207,7 +207,7 @@ endfunction
 "       let i = (a:foreward ? 0 : -2)
 "     else
 "       for i in range(len(b:ctaglines)-1)
-"         if lnum==b:ctaglines[i]
+"         if lnum == b:ctaglines[i]
 "           let i = (a:foreward ? i+1 : i-1) | break
 "         elseif lnum>b:ctaglines[i] && lnum<b:ctaglines[i+1]
 "           let i = (a:foreward ? i+1 : i) | break
