@@ -1,5 +1,5 @@
 # Statusline
-This vim plugin provides a minimalist black-and-white "statusline" with some handy features. The statusline will look something like the following.
+This vim plugin provides a minimalist black-and-white "statusline" with some handy features. The statusline will look something like the following:
 
 ```
 /path/to/file (git branch) [filetype:filesize] [mode:paste_indicator] [caps_lock_indicator]     [ctags_location] [line/nlines] (percent)
