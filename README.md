@@ -1,16 +1,17 @@
 Statusline
 ==========
 
-This vim plugin provides a minimalist black-and-white "statusline" with some handy features. The statusline will look something like this:
+Vim plugin providing minimalist black-and-white "statusline" with some handy
+features. The statusline will look something like this:
 
 ```
-/path/to/file (git branch) [filetype:filesize] [mode:paste_indicator] [caps_lock_indicator]     [ctags_location] [line/nlines] (percent)
+/path/to/file (git_branch) [filetype:filesize] [mode:paste_indicator] [caps_lock_indicator]     [ctags_location] [column:line/nlines] (percent)
 ```
 
 This plugin optionally integrates with the
 [fugitive](https://github.com/tpope/vim-fugitive) and
-[tagbar](https://github.com/majutsushi/tagbar) plugins, using which the current git
-branch and closest ctag name are shown in the statusline.
+[tagbar](https://github.com/majutsushi/tagbar) plugins
+by showing the current git branch and closest ctag name.
 
 Installation
 ============

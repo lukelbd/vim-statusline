@@ -159,7 +159,7 @@ endfunction
 
 " Location
 function! Location()
-  return '  [' . line('.') . ':' . col('.') . '/' . line('$') . '] (' . (100 * line('.') / line('$')) . '%)' " current line and percentage
+  return '  [' . col('.') . ':' . line('.') . '/' . line('$') . '] (' . (100 * line('.') / line('$')) . '%)' " current line and percentage
 endfunction
 
 " Tags using tagbar
