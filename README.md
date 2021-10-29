@@ -8,7 +8,8 @@ features. The statusline will look something like this:
 /path/to/file (git_branch) [filetype:filesize] [mode:paste_indicator] [caps_lock_indicator]     [ctags_location] [column:line/nlines] (percent)
 ```
 
-This plugin optionally integrates with the
+The statusline will be colored white in insert mode, black in normal mode, and red
+if the buffer file has been changed on disk. This plugin optionally integrates with the
 [fugitive](https://github.com/tpope/vim-fugitive) and
 [tagbar](https://github.com/majutsushi/tagbar) plugins
 by showing the current git branch and closest ctag name.
