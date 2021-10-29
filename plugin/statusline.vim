@@ -5,20 +5,26 @@
 " A simple, minimal, black-and-white statusline that helps keep focus on the
 " content and syntax coloring in the *document*.
 "------------------------------------------------------------------------------
-" Settings
-set showcmd " command line below statusline
-set noshowmode
-set laststatus=2 " always show
-let &statusline = ''
-let &statusline .= '%{ShortName()}'     " current buffer's file name
-let &statusline .= '%{Git()}'           " output buffer's file size
-let &statusline .= '%{FileInfo()}'      " output buffer's file size
-let &statusline .= '%{PrintMode()}'     " normal/insert mode
-let &statusline .= '%{PrintLanguage()}' " show language setting: UK english or US enlish
-let &statusline .= '%{CapsLock()}'      " check if language maps enabled
-let &statusline .= '%='            " right side of statusline, and perserve space between sides
-let &statusline .= '%{Tag()}'      " ctags tag under cursor
-let &statusline .= '%{Location()}' " cursor's current line, total lines, and percentage
+" Autocommand
+function! s:statusline_color(insert)
+  let cterm = 'NONE'
+  if getbufvar('%', '&modified', 0) && getbufvar('%', 'tabline_filechanged', 0)
+    let ctermfg = 'White'
+    let ctermbg = 'Red'
+  elseif a:insert
+    let ctermfg = 'Black'
+    let ctermbg = 'White'
+  else
+    let ctermfg = 'White'
+    let ctermbg = 'Black'
+  endif
+  exe 'hi StatusLine ctermbg=' . ctermbg . ' ctermfg=' . ctermfg . ' cterm=' . cterm
+endfunction
+augroup statusline_color
+  au!
+  au InsertEnter * call s:statusline_color(1)
+  au InsertLeave * call s:statusline_color(0)
+augroup END
 
 " Define all the different modes
 " Show whether in pastemode
@@ -178,3 +184,19 @@ function! Tag()
   endif
   return '  [' . string . ']'
 endfunction
+
+" Settings and highlight groups
+set showcmd " command line below statusline
+set noshowmode
+set laststatus=2 " always show
+let &statusline = ''
+let &statusline .= '%{ShortName()}'     " current buffer's file name
+let &statusline .= '%{Git()}'           " output buffer's file size
+let &statusline .= '%{FileInfo()}'      " output buffer's file size
+let &statusline .= '%{PrintMode()}'     " normal/insert mode
+let &statusline .= '%{PrintLanguage()}' " show language setting: UK english or US enlish
+let &statusline .= '%{CapsLock()}'      " check if language maps enabled
+let &statusline .= '%='            " right side of statusline, and perserve space between sides
+let &statusline .= '%{Tag()}'      " ctags tag under cursor
+let &statusline .= '%{Location()}' " cursor's current line, total lines, and percentage
+highlight StatusLine ctermbg=Black ctermfg=White cterm=NONE
