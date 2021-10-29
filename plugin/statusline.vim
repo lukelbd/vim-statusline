@@ -8,7 +8,7 @@
 " Autocommand
 function! s:statusline_color(insert)
   let cterm = 'NONE'
-  if getbufvar('%', '&modified', 0) && getbufvar('%', 'tabline_filechanged', 0)
+  if getbufvar('%', 'statusline_filechanged', 0)
     let ctermfg = 'White'
     let ctermbg = 'Red'
   elseif a:insert
@@ -22,7 +22,10 @@ function! s:statusline_color(insert)
 endfunction
 augroup statusline_color
   au!
-  au BufEnter,TextChanged * call s:statusline_color(mode() =~# '^i')  " match tabline autocmds
+  au BufEnter,InsertEnter,TextChanged * silent! checktime
+  au BufReadPost,BufWritePost,BufNewFile * let b:statusline_filechanged = 0
+  au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
+  au BufEnter,TextChanged * call s:statusline_color(mode() =~# '^i')
   au InsertEnter * call s:statusline_color(1)
   au InsertLeave * call s:statusline_color(0)
 augroup END
