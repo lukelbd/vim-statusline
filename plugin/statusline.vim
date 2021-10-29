@@ -22,6 +22,7 @@ function! s:statusline_color(insert)
 endfunction
 augroup statusline_color
   au!
+  au BufEnter,TextChanged * call s:statusline_color(mode() =~# '^i')  " match tabline autocmds
   au InsertEnter * call s:statusline_color(1)
   au InsertLeave * call s:statusline_color(0)
 augroup END
