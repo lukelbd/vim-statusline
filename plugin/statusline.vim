@@ -25,7 +25,7 @@ augroup statusline_color
   au BufEnter,InsertEnter,TextChanged * silent! checktime
   au BufReadPost,BufWritePost,BufNewFile * let b:statusline_filechanged = 0
   au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
-  au BufEnter,TextChanged * call s:statusline_color(mode() =~# '^i')
+  au FileChangedShell,BufEnter,TextChanged * call s:statusline_color(mode() =~# '^i')
   au InsertEnter * call s:statusline_color(1)
   au InsertLeave * call s:statusline_color(0)
 augroup END
