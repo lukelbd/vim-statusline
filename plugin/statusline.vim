@@ -30,49 +30,9 @@ augroup statusline_color
   au InsertLeave * call s:statusline_color(0)
 augroup END
 
-" Define all the different modes
-" Show whether in pastemode
-function! PrintMode()
-  let currentmode = {
-    \ 'n':  'Normal',  'no': 'N-Operator Pending',
-    \ 'v':  'Visual',  'V' : 'V-Line',  '': 'V-Block',
-    \ 's':  'Select',  'S' : 'S-Line',  '': 'S-Block',
-    \ 'i':  'Insert',  'R' : 'Replace', 'Rv': 'V-Replace',
-    \ 'c':  'Command', 'r' : 'Prompt',
-    \ 'cv': 'Vim Ex',  'ce': 'Ex',
-    \ 'rm': 'More',    'r?': 'Confirm', '!' : 'shell',
-    \ 't':  'Terminal',
-    \}
-  let string = currentmode[mode()]
-  if &paste
-    let string .= ':Paste'
-  endif
-  return '  [' . string . ']'
-endfunction
-
-" Caps lock (are language maps enabled?)
-" iminsert is the option that enables/disables language remaps (lnoremap) that
-" I use for caps-lock, and if it is on, we have turned on the caps-lock remaps
-function! CapsLock()
-  if &iminsert
-    return '  [CapsLock]'
-  else
-    return ''
-  endif
-endfunction
-
-" Git branch
-function! Git()
-  if exists('*fugitive#head') && !empty(fugitive#head())
-    return '  (' . fugitive#head() . ')'
-  else
-    return ''
-  endif
-endfunction
-
 " Shorten a given filename by truncating path segments.
 " https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
-function! ShortName() " {{{
+function! PrintName() " {{{
   " Necessary args
   let bufname = @%
   let maxlen = 20
@@ -122,9 +82,18 @@ function! ShortName() " {{{
   return r
 endfunction " }}}
 
+" Git branch
+function! PrintBranch()
+  if exists(':Git') && !empty(fugitive#head())
+    return '  (' . fugitive#head() . ')'
+  else
+    return ''
+  endif
+endfunction
+
 " Find out current buffer's size and output it.
 " Also add git branch if available
-function! FileInfo() " {{{
+function! PrintInfo() " {{{
   " File type
   if empty(&filetype)
     let string = 'unknown:'
@@ -152,8 +121,28 @@ function! FileInfo() " {{{
   return '  [' . string . ']'
 endfunction " }}}
 
-" Whether UK english (e.g. Nature), or U.S. english
-function! PrintLanguage()
+" Define all the different modes
+" Show whether in pastemode
+function! PrintMode()
+  let currentmode = {
+    \ 'n':  'Normal',  'no': 'N-Operator Pending',
+    \ 'v':  'Visual',  'V' : 'V-Line',  '': 'V-Block',
+    \ 's':  'Select',  'S' : 'S-Line',  '': 'S-Block',
+    \ 'i':  'Insert',  'R' : 'Replace', 'Rv': 'V-Replace',
+    \ 'c':  'Command', 'r' : 'Prompt',
+    \ 'cv': 'Vim Ex',  'ce': 'Ex',
+    \ 'rm': 'More',    'r?': 'Confirm', '!' : 'shell',
+    \ 't':  'Terminal',
+    \}
+  let string = currentmode[mode()]
+  if &paste
+    let string .= ':Paste'
+  endif
+  return '  [' . string . ']'
+endfunction
+
+" Whether spell checking is UK english (e.g. Nature), or U.S. english
+function! PrintSpell()
   if &spell
     if &spelllang ==? 'en_us'
       return '  [US]'
@@ -167,14 +156,28 @@ function! PrintLanguage()
   endif
 endfunction
 
-" Location
-function! Location()
-  return '  [' . col('.') . ':' . line('.') . '/' . line('$') . '] (' . (100 * line('.') / line('$')) . '%)' " current line and percentage
+" Whether so-called lmaps are enabled (corresponds to caps lock in personal setup)
+function! PrintLang()
+  if &iminsert > 0 || &imsearch > 0
+    return '  [LangMap]'
+  else
+    return ''
+  endif
+endfunction
+
+" Current column number, current line number, total line number, and percentage
+function! PrintLoc()
+  return '  ['
+    \ . col('.')
+    \ . ':' . line('.') . '/' . line('$')
+    \ . '] ('
+    \ . (100 * line('.') / line('$')) . '%'
+    \ . ')'
 endfunction
 
 " Tags using tagbar
 " Note: See :help tagbar-statusline for info
-function! Tag()
+function! PrintTag()
   let maxlen = 15  " can change this
   if !exists('*tagbar#currenttag')
     return ''
@@ -194,13 +197,14 @@ set showcmd " command line below statusline
 set noshowmode
 set laststatus=2 " always show
 let &statusline = ''
-let &statusline .= '%{ShortName()}'     " current buffer's file name
-let &statusline .= '%{Git()}'           " output buffer's file size
-let &statusline .= '%{FileInfo()}'      " output buffer's file size
-let &statusline .= '%{PrintMode()}'     " normal/insert mode
-let &statusline .= '%{PrintLanguage()}' " show language setting: UK english or US enlish
-let &statusline .= '%{CapsLock()}'      " check if language maps enabled
-let &statusline .= '%='            " right side of statusline, and perserve space between sides
-let &statusline .= '%{Tag()}'      " ctags tag under cursor
-let &statusline .= '%{Location()}' " cursor's current line, total lines, and percentage
+let &statusline .= '%{PrintName()}'  " current buffer's file name
+let &statusline .= '%{PrintBranch()}'  " git branch info
+let &statusline .= '%{PrintInfo()}'  " output buffer's file size
+let &statusline .= '%{PrintMode()}'  " normal/insert mode
+let &statusline .= '%{PrintSpell()}'  " show language setting: UK english or US enlish
+let &statusline .= '%{PrintLang()}'  " check if language maps enabled
+if exists('*ObsessionStatus') | let &statusline .= ' %{ObsessionStatus()}' | endif
+let &statusline .= '%='  " right side of statusline, and perserve space between sides
+let &statusline .= '%{PrintTag()}'  " ctags tag under cursor
+let &statusline .= '%{PrintLoc()}'  " cursor's current line, total lines, and percentage
 highlight StatusLine ctermbg=Black ctermfg=White cterm=NONE
