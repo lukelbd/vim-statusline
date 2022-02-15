@@ -5,10 +5,36 @@
 " A simple, minimal, black-and-white statusline that helps keep focus on the
 " content and syntax coloring in the *document*.
 "------------------------------------------------------------------------------
+" Script variable for mode
+let s:mode_names = {
+  \ 'n':  'Normal',
+  \ 'no': 'N-Operator Pending',
+  \ 'v':  'Visual',
+  \ 'V' : 'V-Line',
+  \ '': 'V-Block',
+  \ 's':  'Select',
+  \ 'S' : 'S-Line',
+  \ '': 'S-Block',
+  \ 'i':  'Insert',
+  \ 'R' : 'Replace',
+  \ 'Rv': 'V-Replace',
+  \ 'c':  'Command',
+  \ 'r' : 'Prompt',
+  \ 'cv': 'Vim Ex',
+  \ 'ce': 'Ex',
+  \ 'rm': 'More',
+  \ 'r?': 'Confirm',
+  \ '!' : 'Shell',
+  \ 't':  'Terminal',
+  \ }
+
 " Autocommand
-function! s:statusline_color(insert)
+" Todo: Fix tagbar current tag issues
+" Note: expand('<afile>') is required but expand('%') is not
+" Note: autocmds with same name are called in order (try adding echom commands)
+function! s:statusline_color(buffer, insert)
   let cterm = 'NONE'
-  if getbufvar('%', 'statusline_filechanged', 0)
+  if getbufvar(a:buffer, 'statusline_filechanged', 0)
     let ctermfg = 'White'
     let ctermbg = 'Red'
   elseif a:insert
@@ -22,67 +48,60 @@ function! s:statusline_color(insert)
 endfunction
 augroup statusline_color
   au!
-  au BufEnter,InsertEnter,TextChanged * silent! checktime
-  au BufReadPost,BufWritePost,BufNewFile * let b:statusline_filechanged = 0
+  au BufEnter,TextChanged,InsertEnter * silent! checktime
+  au BufReadPost,BufWritePost,BufNewFile * call setbufvar(expand('<afile>'), 'statusline_filechanged', 0)
   au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
-  au FileChangedShell,BufEnter,TextChanged * call s:statusline_color(mode() =~# '^i')
-  au InsertEnter * call s:statusline_color(1)
-  au InsertLeave * call s:statusline_color(0)
+  au FileChangedShell * call s:statusline_color(expand('<afile>'), mode() =~# '^i')
+  au BufEnter,TextChanged * call s:statusline_color('%', mode() =~# '^i')
+  au InsertEnter * call s:statusline_color('%', 1)
+  au InsertLeave * call s:statusline_color('%', 0)
 augroup END
 
 " Shorten a given filename by truncating path segments.
 " https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
-function! PrintName() " {{{
-  " Necessary args
+function! PrintName()
   let bufname = @%
   let maxlen = 20
-  " Replace home directory
-  if bufname =~ $HOME
-    let bufname = '~' . split(bufname,$HOME)[-1]
+  if bufname =~ $HOME  " replace home directory with tilde
+    let bufname = '~' . split(bufname, $HOME)[-1]
   endif
-  " Body
-  let maxlen_of_parts = 7 " including slash/dot
-  let maxlen_of_subparts = 5 " split at dot/hypen/underscore; including split
-  let s:PS = exists('+shellslash') ? (&shellslash ? '/' : '\') : '/'
-  let parts = split(bufname, '\ze[' . escape(s:PS, '\') . ']')
+  let maxlen_of_parts = 7  " truncate path parts (directories and filename)
+  let maxlen_of_subparts = 5  " truncate path pieces (seperated by dot/hypen/underscore)
+  let s:slash = exists('+shellslash') ? (&shellslash ? '/' : '\') : '/'
+  let parts = split(bufname, '\ze[' . escape(s:slash, '\') . ']')
   let i = 0
   let n = len(parts)
   let wholepath = '' " used for symlink check
   while i < n
     let wholepath .= parts[i]
-    " Shorten part, if necessary:
-    if i<n-1 && len(bufname) > maxlen && len(parts[i]) > maxlen_of_parts
-    " Let's see if there are dots or hyphens to truncate at, e.g.
-    " 'vim-pkg-debian' => 'v-p-d…'
-    let w = split(parts[i], '\ze[._-]')
-    if len(w) > 1
-      let parts[i] = ''
-      for j in w
-      if len(j) > maxlen_of_subparts-1
-        let parts[i] .= j[0:maxlen_of_subparts-2] . '·'
+    if i < n - 1 && len(bufname) > maxlen && len(parts[i]) > maxlen_of_parts  " shorten path
+      let strings = split(parts[i], '\ze[._-]')  " see if there are dots or hyphens to truncate
+      if len(strings) > 1
+        let parts[i] = ''
+        for string in strings  " e.g. 'vim-pkg-debian' => 'v-p-d…'
+          if len(string) > maxlen_of_subparts - 1
+            let parts[i] .= string[0:maxlen_of_subparts - 2] . '·'
+          else
+            let parts[i] .= string
+          endif
+        endfor
       else
-        let parts[i] .= j
+        let parts[i] = parts[i][0:maxlen_of_parts - 2] . '·'
       endif
-      endfor
-    else
-      let parts[i] = parts[i][0:maxlen_of_parts-2] . '·'
     endif
-    endif
-    " add indicator if this part of the filename is a symlink
-    if getftype(wholepath) ==# 'link'
-    if parts[i][0] == s:PS
-      let parts[i] = parts[i][0] . '↪ ./' . parts[i][1:]
-    else
-      let parts[i] = '↪ ./' . parts[i]
-    endif
+    if getftype(wholepath) ==# 'link'  " indicator if this part of filename is symlink
+      if parts[i][0] == s:slash
+        let parts[i] = parts[i][0] . '↪ ./' . parts[i][1:]
+      else
+        let parts[i] = '↪ ./' . parts[i]
+      endif
     endif
     let i += 1
   endwhile
-  let r = join(parts, '')
-  return r
-endfunction " }}}
+  return join(parts, '')
+endfunction
 
-" Git branch
+" Current git branch using fugitive
 function! PrintBranch()
   if exists(':Git') && !empty(fugitive#head())
     return '  (' . fugitive#head() . ')'
@@ -91,16 +110,13 @@ function! PrintBranch()
   endif
 endfunction
 
-" Find out current buffer's size and output it.
-" Also add git branch if available
-function! PrintInfo() " {{{
-  " File type
+" Current file type and size in human-readable units
+function! PrintInfo()
   if empty(&filetype)
     let string = 'unknown:'
   else
     let string = &filetype . ':'
   endif
-  " File size
   let bytes = getfsize(expand('%:p'))
   if bytes >= 1024
     let kbytes = bytes / 1024
@@ -112,36 +128,25 @@ function! PrintInfo() " {{{
     let string .= 'null'
   endif
   if exists('mbytes')
-    let string .= (mbytes . 'MB')
+    let string .= mbytes . 'MB'
   elseif exists('kbytes')
-    let string .= (kbytes . 'KB')
+    let string .= kbytes . 'KB'
   else
-    let string .= (bytes . 'B')
+    let string .= bytes . 'B'
   endif
   return '  [' . string . ']'
-endfunction " }}}
+endfunction
 
-" Define all the different modes
-" Show whether in pastemode
+" Current mode including indicator if in paste mode
 function! PrintMode()
-  let currentmode = {
-    \ 'n':  'Normal',  'no': 'N-Operator Pending',
-    \ 'v':  'Visual',  'V' : 'V-Line',  '': 'V-Block',
-    \ 's':  'Select',  'S' : 'S-Line',  '': 'S-Block',
-    \ 'i':  'Insert',  'R' : 'Replace', 'Rv': 'V-Replace',
-    \ 'c':  'Command', 'r' : 'Prompt',
-    \ 'cv': 'Vim Ex',  'ce': 'Ex',
-    \ 'rm': 'More',    'r?': 'Confirm', '!' : 'shell',
-    \ 't':  'Terminal',
-    \}
-  let string = currentmode[mode()]
-  if &paste
+  let string = get(s:mode_names, mode(), 'Unknown')
+  if &paste  " paste mode indicator
     let string .= ':Paste'
   endif
   return '  [' . string . ']'
 endfunction
 
-" Whether spell checking is UK english (e.g. Nature), or U.S. english
+" Whether spell checking is US or UK english
 function! PrintSpell()
   if &spell
     if &spelllang ==? 'en_us'
@@ -193,9 +198,9 @@ function! PrintTag()
 endfunction
 
 " Settings and highlight groups
-set showcmd " command line below statusline
-set noshowmode
-set laststatus=2 " always show
+set showcmd  " show command line below statusline
+set noshowmode  " no mode indicator in command line (use the statusline instead)
+set laststatus=2  " always show status line even in last window
 let &statusline = ''
 let &statusline .= '%{PrintName()}'  " current buffer's file name
 let &statusline .= '%{PrintBranch()}'  " git branch info
