@@ -29,12 +29,13 @@ let s:mode_names = {
   \ }
 
 " Autocommand
-" Todo: Fix tagbar current tag issues
-" Note: expand('<afile>') is required but expand('%') is not
-" Note: autocmds with same name are called in order (try adding echom commands)
-function! s:statusline_color(buffer, insert)
+" Note: Autocommands with same name are called in order (try adding echom commands)
+" Note: For some reason statusline_color must always search b:statusline_filechanged
+" and trying to be clever by passing expand('<afile>') then using getbufvar will color
+" the statusline in the wrong window when a file is changed. No idea why.
+function! s:statusline_color(insert)
   let cterm = 'NONE'
-  if getbufvar(a:buffer, 'statusline_filechanged', 0)
+  if getbufvar('%', 'statusline_filechanged', 0)
     let ctermfg = 'White'
     let ctermbg = 'Red'
   elseif a:insert
@@ -51,10 +52,10 @@ augroup statusline_color
   au BufEnter,TextChanged,InsertEnter * silent! checktime
   au BufReadPost,BufWritePost,BufNewFile * call setbufvar(expand('<afile>'), 'statusline_filechanged', 0)
   au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
-  au FileChangedShell * call s:statusline_color(expand('<afile>'), mode() =~# '^i')
-  au BufEnter,TextChanged * call s:statusline_color('%', mode() =~# '^i')
-  au InsertEnter * call s:statusline_color('%', 1)
-  au InsertLeave * call s:statusline_color('%', 0)
+  au FileChangedShell * call s:statusline_color(mode() =~# '^i')
+  au BufEnter,TextChanged * call s:statusline_color(mode() =~# '^i')
+  au InsertEnter * call s:statusline_color(1)
+  au InsertLeave * call s:statusline_color(0)
 augroup END
 
 " Shorten a given filename by truncating path segments.
