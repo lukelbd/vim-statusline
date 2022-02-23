@@ -185,15 +185,15 @@ endfunction
 " Note: See :help tagbar-statusline for info
 function! PrintTag()
   let maxlen = 15  " can change this
-  if !exists('*tagbar#currenttag')
+  if !exists('*tags#current_tag')
     return ''
   endif
-  let string = tagbar#currenttag('%s', '', 'f')  " f is for full hiearchy (incl. parent)
+  let string = tags#current_tag()
   if empty(string)
     return ''
   endif
   if len(string) >= maxlen
-    let string = string[:maxlen-1] . '···'
+    let string = string[:maxlen - 1] . '···'
   endif
   return '  [' . string . ']'
 endfunction
