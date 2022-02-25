@@ -139,15 +139,21 @@ function! PrintInfo()
 endfunction
 
 " Current mode including indicator if in paste mode
+" Note: iminsert and imsearch controls whether lmaps are activated, which
+" corresponds to caps lock mode in personal setup.
 function! PrintMode()
   let string = get(s:mode_names, mode(), 'Unknown')
   if &paste  " paste mode indicator
     let string .= ':Paste'
   endif
+  if &iminsert > 0 || &imsearch > 0
+    let string .= ':LangMap'
+  endif
   return '  [' . string . ']'
 endfunction
 
 " Whether spell checking is US or UK english
+" Todo: Add other languages?
 function! PrintSpell()
   if &spell
     if &spelllang ==? 'en_us'
@@ -155,30 +161,24 @@ function! PrintSpell()
     elseif &spelllang ==? 'en_gb'
       return '  [UK]'
     else
-      return '  [??]'
+      return '  [Spell]'
     endif
   else
     return ''
   endif
 endfunction
 
-" Whether so-called lmaps are enabled (corresponds to caps lock in personal setup)
-function! PrintLang()
-  if &iminsert > 0 || &imsearch > 0
-    return '  [LangMap]'
-  else
+" Print the session status using obsession
+" Note: This was adapted from ObsessionStatus. Previously we tested existence
+" of ObsessionStatus below but that caused race condition issue.
+function! PrintSession()
+  if empty(v:this_session)  " should always be set by vim-obsession
     return ''
+  elseif exists('g:this_obsession')
+    return '  [$]'  " vim-obsession session
+  else
+    return '  [S]'  " regular vim session
   endif
-endfunction
-
-" Current column number, current line number, total line number, and percentage
-function! PrintLoc()
-  return '  ['
-    \ . col('.')
-    \ . ':' . line('.') . '/' . line('$')
-    \ . '] ('
-    \ . (100 * line('.') / line('$')) . '%'
-    \ . ')'
 endfunction
 
 " Tags using tagbar
@@ -198,6 +198,16 @@ function! PrintTag()
   return '  [' . string . ']'
 endfunction
 
+" Current column number, current line number, total line number, and percentage
+function! PrintLoc()
+  return '  ['
+    \ . col('.')
+    \ . ':' . line('.') . '/' . line('$')
+    \ . '] ('
+    \ . (100 * line('.') / line('$')) . '%'
+    \ . ')'
+endfunction
+
 " Settings and highlight groups
 set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
@@ -208,8 +218,7 @@ let &statusline .= '%{PrintBranch()}'  " git branch info
 let &statusline .= '%{PrintInfo()}'  " output buffer's file size
 let &statusline .= '%{PrintMode()}'  " normal/insert mode
 let &statusline .= '%{PrintSpell()}'  " show language setting: UK english or US enlish
-let &statusline .= '%{PrintLang()}'  " check if language maps enabled
-if exists('*ObsessionStatus') | let &statusline .= ' %{ObsessionStatus()}' | endif
+let &statusline .= '%{PrintSession()}'
 let &statusline .= '%='  " right side of statusline, and perserve space between sides
 let &statusline .= '%{PrintTag()}'  " ctags tag under cursor
 let &statusline .= '%{PrintLoc()}'  " cursor's current line, total lines, and percentage
