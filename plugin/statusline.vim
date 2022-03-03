@@ -181,8 +181,7 @@ function! PrintSession()
   endif
 endfunction
 
-" Tags using tagbar
-" Note: See :help tagbar-statusline for info
+" Tag kind and name using lukelbd/vim-tags
 function! PrintTag()
   let maxlen = 15  " can change this
   if !exists('*tags#current_tag')
