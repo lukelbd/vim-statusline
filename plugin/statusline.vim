@@ -28,12 +28,19 @@ let s:mode_names = {
   \ 't':  'Terminal',
   \ }
 
-" Autocommand
+" Global settings and highlight groups
+set showcmd  " show command line below statusline
+set noshowmode  " no mode indicator in command line (use the statusline instead)
+set laststatus=2  " always show status line even in last window
+set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
+highlight StatusLine ctermbg=Black ctermfg=White cterm=NONE
+
+" Autocommands for highlighting
 " Note: Autocommands with same name are called in order (try adding echom commands)
 " Note: For some reason statusline_color must always search b:statusline_filechanged
 " and trying to be clever by passing expand('<afile>') then using getbufvar will color
 " the statusline in the wrong window when a file is changed. No idea why.
-function! s:statusline_color(insert)
+function! s:statusline_color(insert) abort
   let cterm = 'NONE'
   if getbufvar('%', 'statusline_filechanged', 0)
     let ctermfg = 'White'
@@ -60,7 +67,7 @@ augroup END
 
 " Shorten a given filename by truncating path segments.
 " https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
-function! PrintName()
+function! s:file_name() abort
   let bufname = @%
   let maxlen = 20
   if bufname =~ $HOME  " replace home directory with tilde
@@ -103,16 +110,16 @@ function! PrintName()
 endfunction
 
 " Current git branch using fugitive
-function! PrintBranch()
+function! s:git_branch() abort
   if exists(':Git') && !empty(fugitive#head())
-    return '  (' . fugitive#head() . ')'
+    return ' (' . fugitive#head() . ')'
   else
     return ''
   endif
 endfunction
 
 " Current file type and size in human-readable units
-function! PrintInfo()
+function! s:file_info() abort
   if empty(&filetype)
     let string = 'unknown:'
   else
@@ -135,13 +142,13 @@ function! PrintInfo()
   else
     let string .= bytes . 'B'
   endif
-  return '  [' . string . ']'
+  return ' [' . string . ']'
 endfunction
 
 " Current mode including indicator if in paste mode
 " Note: iminsert and imsearch controls whether lmaps are activated, which
 " corresponds to caps lock mode in personal setup.
-function! PrintMode()
+function! s:vim_mode() abort
   let string = get(s:mode_names, mode(), 'Unknown')
   if &paste  " paste mode indicator
     let string .= ':Paste'
@@ -149,19 +156,19 @@ function! PrintMode()
   if &iminsert > 0 || &imsearch > 0
     let string .= ':LangMap'
   endif
-  return '  [' . string . ']'
+  return ' [' . string . ']'
 endfunction
 
 " Whether spell checking is US or UK english
 " Todo: Add other languages?
-function! PrintSpell()
+function! s:vim_spell() abort
   if &spell
     if &spelllang ==? 'en_us'
-      return '  [US]'
+      return ' [US]'
     elseif &spelllang ==? 'en_gb'
-      return '  [UK]'
+      return ' [UK]'
     else
-      return '  [Spell]'
+      return ' [Spell]'
     endif
   else
     return ''
@@ -171,19 +178,19 @@ endfunction
 " Print the session status using obsession
 " Note: This was adapted from ObsessionStatus. Previously we tested existence
 " of ObsessionStatus below but that caused race condition issue.
-function! PrintSession()
+function! s:vim_session() abort
   if empty(v:this_session)  " should always be set by vim-obsession
     return ''
   elseif exists('g:this_obsession')
-    return '  [$]'  " vim-obsession session
+    return ' [$]'  " vim-obsession session
   else
-    return '  [S]'  " regular vim session
+    return ' [S]'  " regular vim session
   endif
 endfunction
 
 " Tag kind and name using lukelbd/vim-tags
-function! PrintTag()
-  let maxlen = 15  " can change this
+function! s:loc_tag() abort
+  let maxlen = 15  " can be changed
   if !exists('*tags#current_tag')
     return ''
   endif
@@ -194,12 +201,12 @@ function! PrintTag()
   if len(string) >= maxlen
     let string = string[:maxlen - 1] . '···'
   endif
-  return '  [' . string . ']'
+  return ' [' . string . ']'
 endfunction
 
 " Current column number, current line number, total line number, and percentage
-function! PrintLoc()
-  return '  ['
+function! s:loc_info() abort
+  return ' ['
     \ . col('.')
     \ . ':' . line('.') . '/' . line('$')
     \ . '] ('
@@ -207,18 +214,21 @@ function! PrintLoc()
     \ . ')'
 endfunction
 
-" Settings and highlight groups
-set showcmd  " show command line below statusline
-set noshowmode  " no mode indicator in command line (use the statusline instead)
-set laststatus=2  " always show status line even in last window
-let &statusline = ''
-let &statusline .= '%{PrintName()}'  " current buffer's file name
-let &statusline .= '%{PrintBranch()}'  " git branch info
-let &statusline .= '%{PrintInfo()}'  " output buffer's file size
-let &statusline .= '%{PrintMode()}'  " normal/insert mode
-let &statusline .= '%{PrintSpell()}'  " show language setting: UK english or US enlish
-let &statusline .= '%{PrintSession()}'
-let &statusline .= '%='  " right side of statusline, and perserve space between sides
-let &statusline .= '%{PrintTag()}'  " ctags tag under cursor
-let &statusline .= '%{PrintLoc()}'  " cursor's current line, total lines, and percentage
-highlight StatusLine ctermbg=Black ctermfg=White cterm=NONE
+" The driver functions used to fill the statusline
+function! StatusLeft() abort
+  let names = [
+    \ 's:file_name', 's:git_branch', 's:file_info',
+    \ 's:vim_mode', 's:vim_spell', 's:vim_session'
+    \ ]
+  let line = ''
+  let maxlen = winwidth(0) - len(StatusRight()) - 1
+  for name in names  " note cannot use function() handles for locals
+    exe 'let part = ' name . '()'
+    if len(line . part) > maxlen | return line | endif
+    let line .= part
+  endfor
+  return line
+endfunction
+function! StatusRight() abort
+  return s:loc_tag() . s:loc_info()
+endfunction
