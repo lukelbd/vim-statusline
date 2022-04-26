@@ -83,7 +83,6 @@ function! s:file_name() abort
   for i in range(len(parts))
     if len(bufname) > maxlen && len(parts[i]) > maxlen_of_parts  " shorten path
       let subparts = split(parts[i], '\ze[._]')  " groups to truncate
-      echom string(subparts)
       if len(subparts) > 1
         let parts[i] = ''
         for string in subparts  " e.g. ta_Amon_LONG-MODEL-NAME.nc
@@ -107,9 +106,6 @@ function! s:file_name() abort
     let wholepath .= parts[i]
   endfor
   return join(parts, '')
-endfunction
-function! FileName() abort
-  return s:file_name()
 endfunction
 
 " Current git branch using fugitive
