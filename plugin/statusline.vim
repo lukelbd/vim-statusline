@@ -82,11 +82,11 @@ function! s:file_name() abort
   let wholepath = '' " used for symlink check
   for i in range(len(parts))
     if len(bufname) > maxlen && len(parts[i]) > maxlen_of_parts  " shorten path
-      let strings = split(parts[i], '\ze[._-]')  " dots or hyphens to truncate
-      echom string(strings)
-      if len(strings) > 1
+      let subparts = split(parts[i], '\ze[._]')  " groups to truncate
+      echom string(subparts)
+      if len(subparts) > 1
         let parts[i] = ''
-        for string in strings  " e.g. 'vim-pkg-debian' => 'v-p-d…'
+        for string in subparts  " e.g. ta_Amon_LONG-MODEL-NAME.nc
           if len(string) > maxlen_of_subparts - 1
             let parts[i] .= string[0:maxlen_of_subparts - 2] . '·'
           else
