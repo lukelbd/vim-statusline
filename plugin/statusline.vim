@@ -74,16 +74,16 @@ function! s:file_name() abort
     let bufname = '~' . split(bufname, $HOME)[-1]
   endif
   let maxlen_of_parts = 7  " truncate path parts (directories and filename)
-  let maxlen_of_subparts = 5  " truncate path pieces (seperated by dot/hypen/underscore)
+  let maxlen_of_subparts = 7  " truncate path pieces (seperated by dot/hypen/underscore)
   let s:slash = exists('+shellslash') ? (&shellslash ? '/' : '\') : '/'
   let parts = split(bufname, '\ze[' . escape(s:slash, '\') . ']')
   let i = 0
   let n = len(parts)
   let wholepath = '' " used for symlink check
-  while i < n
-    let wholepath .= parts[i]
-    if i < n - 1 && len(bufname) > maxlen && len(parts[i]) > maxlen_of_parts  " shorten path
-      let strings = split(parts[i], '\ze[._-]')  " see if there are dots or hyphens to truncate
+  for i in range(len(parts))
+    if len(bufname) > maxlen && len(parts[i]) > maxlen_of_parts  " shorten path
+      let strings = split(parts[i], '\ze[._-]')  " dots or hyphens to truncate
+      echom string(strings)
       if len(strings) > 1
         let parts[i] = ''
         for string in strings  " e.g. 'vim-pkg-debian' => 'v-p-d…'
@@ -104,9 +104,12 @@ function! s:file_name() abort
         let parts[i] = '↪ ./' . parts[i]
       endif
     endif
-    let i += 1
-  endwhile
+    let wholepath .= parts[i]
+  endfor
   return join(parts, '')
+endfunction
+function! FileName() abort
+  return s:file_name()
 endfunction
 
 " Current git branch using fugitive
