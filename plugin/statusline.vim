@@ -69,7 +69,8 @@ augroup END
 " https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
 function! s:file_name() abort
   let bufname = @%
-  let maxlen = 20
+  let maxlen_of_raw = 20
+  let maxlen_of_trunc = 40
   if bufname =~ $HOME  " replace home directory with tilde
     let bufname = '~' . split(bufname, $HOME)[-1]
   endif
@@ -77,11 +78,10 @@ function! s:file_name() abort
   let maxlen_of_subparts = 7  " truncate path pieces (seperated by dot/hypen/underscore)
   let s:slash = exists('+shellslash') ? (&shellslash ? '/' : '\') : '/'
   let parts = split(bufname, '\ze[' . escape(s:slash, '\') . ']')
-  let i = 0
-  let n = len(parts)
-  let wholepath = '' " used for symlink check
+  let rawname = '' " used for symlink check
   for i in range(len(parts))
-    if len(bufname) > maxlen && len(parts[i]) > maxlen_of_parts  " shorten path
+    let rawname .= parts[i]  " unfiltered parts
+    if len(bufname) > maxlen_of_raw && len(parts[i]) > maxlen_of_parts  " shorten path
       let subparts = split(parts[i], '\ze[._]')  " groups to truncate
       if len(subparts) > 1
         let parts[i] = ''
@@ -96,16 +96,19 @@ function! s:file_name() abort
         let parts[i] = parts[i][0:maxlen_of_parts - 2] . '·'
       endif
     endif
-    if getftype(wholepath) ==# 'link'  " indicator if this part of filename is symlink
+    if getftype(rawname) ==# 'link'  " indicator if this part of filename is symlink
       if parts[i][0] == s:slash
         let parts[i] = parts[i][0] . '↪ ./' . parts[i][1:]
       else
         let parts[i] = '↪ ./' . parts[i]
       endif
     endif
-    let wholepath .= parts[i]
   endfor
-  return join(parts, '')
+  let truncname = join(parts, '')
+  if len(truncname) > maxlen_of_trunc
+    let truncname = '·' . truncname[1 - maxlen_of_trunc:]
+  endif
+  return truncname
 endfunction
 
 " Current git branch using fugitive
