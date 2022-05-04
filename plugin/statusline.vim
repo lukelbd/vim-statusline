@@ -70,7 +70,7 @@ augroup END
 function! s:file_name() abort
   let bufname = @%
   let maxlen_of_raw = 20
-  let maxlen_of_trunc = 40
+  let maxlen_of_trunc = 50
   if bufname =~ $HOME  " replace home directory with tilde
     let bufname = '~' . split(bufname, $HOME)[-1]
   endif
