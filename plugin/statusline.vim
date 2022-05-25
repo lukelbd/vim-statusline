@@ -113,8 +113,8 @@ endfunction
 
 " Current git branch using fugitive
 function! s:git_branch() abort
-  if exists(':Git') && !empty(fugitive#head())
-    return ' (' . fugitive#head() . ')'
+  if exists('*FugitiveHead') && !empty(FugitiveHead())
+    return ' (' . FugitiveHead() . ')'
   else
     return ''
   endif
