@@ -193,10 +193,13 @@ endfunction
 " Tag kind and name using lukelbd/vim-tags
 function! s:loc_tag() abort
   let maxlen = 15  " can be changed
-  if !exists('*tags#current_tag')
+  if exists('*tags#current_tag')
+    let string = tags#current_tag()
+  elseif exists('*tagbar#currenttag')
+    let string = tagbar#currenttag()
+  else
     return ''
   endif
-  let string = tags#current_tag()
   if empty(string)
     return ''
   endif
