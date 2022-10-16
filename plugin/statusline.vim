@@ -151,12 +151,12 @@ endfunction
 " Note: iminsert and imsearch controls whether lmaps are activated, which
 " corresponds to caps lock mode in personal setup.
 function! s:vim_mode() abort
-  let string = get(s:mode_names, mode(), 'Unknown')
   if &paste  " paste mode indicator
-    let string .= ':Paste'
-  endif
-  if &iminsert > 0 || &imsearch > 0
-    let string .= ':LangMap'
+    let string = 'Paste'
+  elseif exists('b:caps_lock') && b:caps_lock
+    let string = 'CapsLock'
+  else
+    let string = get(s:mode_names, mode(), 'Unknown')
   endif
   return ' [' . string . ']'
 endfunction
