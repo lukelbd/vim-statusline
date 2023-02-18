@@ -1,4 +1,4 @@
-"------------------------------------------------------------------------------"
+"------------------------------------------------------------------------------
 " Name:   statusline.vim
 " Author: Luke Davis (lukelbd@gmail.com)
 " Date:   2018-09-03
@@ -6,6 +6,7 @@
 " content and syntax coloring in the *document*.
 "------------------------------------------------------------------------------
 " Script variable for mode
+scriptencoding utf-8
 let s:mode_names = {
   \ 'n':  'Normal',
   \ 'no': 'N-Operator Pending',
