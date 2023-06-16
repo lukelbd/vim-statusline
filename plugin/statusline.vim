@@ -35,7 +35,6 @@ set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
 set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
 highlight StatusLine ctermbg=Black ctermfg=White cterm=None
-highlight StatusLine guibg=Black guifg=White gui=None
 
 " Autocommands for highlighting
 " Note: Redraw required for CmdlineEnter,CmdlinLeave slow for large files and can
@@ -55,9 +54,7 @@ function! s:statusline_color(highlight) abort
     let colorbg = 'Black'
   endif
   let cterm = 'ctermbg=' . colorbg . ' ctermfg=' . colorfg . ' cterm=None'
-  let gui = ' guibg=' . colorbg . ' guifg=' . colorfg . ' gui=None'
   exe 'highlight StatusLine ' . cterm
-  exe 'highlight StatusLine ' . gui
   if mode() =~? '^c' | redraw | endif
 endfunction
 augroup statusline_color
