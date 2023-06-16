@@ -34,7 +34,8 @@ set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
 set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
-highlight StatusLine ctermbg=Black ctermfg=White cterm=NONE
+highlight StatusLine ctermbg=Black ctermfg=White cterm=None
+highlight StatusLine guibg=Black guifg=White gui=None
 
 " Autocommands for highlighting
 " Note: Redraw required for CmdlineEnter,CmdlinLeave slow for large files and can
@@ -44,19 +45,19 @@ highlight StatusLine ctermbg=Black ctermfg=White cterm=NONE
 " the statusline in the wrong window when a file is changed. No idea why.
 function! s:statusline_color(highlight) abort
   if getbufvar('%', 'statusline_filechanged', 0)
-    let ctermfg = 'White'
-    let ctermbg = 'Red'
+    let colorfg = 'White'
+    let colorbg = 'Red'
   elseif a:highlight
-    let ctermfg = 'Black'
-    let ctermbg = 'White'
+    let colorfg = 'Black'
+    let colorbg = 'White'
   else
-    let ctermfg = 'White'
-    let ctermbg = 'Black'
+    let colorfg = 'White'
+    let colorbg = 'Black'
   endif
-  let cterm = 'NONE'
-  let colors = 'ctermbg=' . ctermbg . ' ctermfg=' . ctermfg . ' cterm=' . cterm
-  let colors .= ' guibg=' . ctermbg . ' guifg=' . ctermfg . ' gui=' . cterm
-  exe 'highlight StatusLine ' . colors
+  let cterm = 'ctermbg=' . colorbg . ' ctermfg=' . colorfg . ' cterm=None'
+  let gui = ' guibg=' . colorbg . ' guifg=' . colorfg . ' gui=None'
+  exe 'highlight StatusLine ' . cterm
+  exe 'highlight StatusLine ' . gui
   if mode() =~? '^c' | redraw | endif
 endfunction
 augroup statusline_color
