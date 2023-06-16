@@ -37,31 +37,35 @@ set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
 highlight StatusLine ctermbg=Black ctermfg=White cterm=NONE
 
 " Autocommands for highlighting
-" Note: Autocommands with same name are called in order (try adding echom commands)
+" Note: Redraw required for CmdlineEnter,CmdlinLeave slow for large files and can
+" trigger for maps, so leave alone. See: https://github.com/neovim/neovim/issues/7583
 " Note: For some reason statusline_color must always search b:statusline_filechanged
 " and trying to be clever by passing expand('<afile>') then using getbufvar will color
 " the statusline in the wrong window when a file is changed. No idea why.
-function! s:statusline_color(insert) abort
-  let cterm = 'NONE'
+function! s:statusline_color(highlight) abort
   if getbufvar('%', 'statusline_filechanged', 0)
     let ctermfg = 'White'
     let ctermbg = 'Red'
-  elseif a:insert
+  elseif a:highlight
     let ctermfg = 'Black'
     let ctermbg = 'White'
   else
     let ctermfg = 'White'
     let ctermbg = 'Black'
   endif
-  exe 'hi StatusLine ctermbg=' . ctermbg . ' ctermfg=' . ctermfg . ' cterm=' . cterm
+  let cterm = 'NONE'
+  let colors = 'ctermbg=' . ctermbg . ' ctermfg=' . ctermfg . ' cterm=' . cterm
+  let colors .= ' guibg=' . ctermbg . ' guifg=' . ctermfg . ' gui=' . cterm
+  exe 'highlight StatusLine ' . colors
+  if mode() =~? '^c' | redraw | endif
 endfunction
 augroup statusline_color
   au!
   au BufEnter,TextChanged,InsertEnter * silent! checktime
   au BufReadPost,BufWritePost,BufNewFile * call setbufvar(expand('<afile>'), 'statusline_filechanged', 0)
   au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
-  au FileChangedShell * call s:statusline_color(mode() =~# '^i')
-  au BufEnter,TextChanged * call s:statusline_color(mode() =~# '^i')
+  au FileChangedShell * call s:statusline_color(mode() =~? '^[ir]')  " triggers after
+  au BufEnter,TextChanged * call s:statusline_color(mode() =~? '^[ir]')
   au InsertEnter * call s:statusline_color(1)
   au InsertLeave * call s:statusline_color(0)
 augroup END
