@@ -108,7 +108,7 @@ function! s:file_name() abort
     endif
   endfor
   let truncname = join(parts, '')
-  if len(truncname) > maxlen_of_trunc
+  if len(truncname) > maxlen_of_trunc  " vint: -ProhibitUsingUndeclaredVariable
     let truncname = '·' . truncname[1 - maxlen_of_trunc:]
   endif
   return truncname
