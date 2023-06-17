@@ -231,8 +231,10 @@ function! StatusLeft() abort
   let line = ''
   let maxlen = winwidth(0) - len(StatusRight()) - 1
   for name in names  " note cannot use function() handles for locals
-    exe 'let part = ' name . '()'
-    if len(line . part) > maxlen | return line | endif
+    let part = call(name, [])
+    if len(line . part) > maxlen
+      return line
+    endif
     let line .= part
   endfor
   return line
