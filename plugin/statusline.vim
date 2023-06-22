@@ -3,7 +3,7 @@
 " Author: Luke Davis (lukelbd@gmail.com)
 " Date:   2018-09-03
 " A simple, minimal, black-and-white statusline that helps keep focus on the
-" content and syntax coloring in the *document*.
+" content in each window and integrates with various plugins.
 "------------------------------------------------------------------------------
 " Script variable for mode
 scriptencoding utf-8
