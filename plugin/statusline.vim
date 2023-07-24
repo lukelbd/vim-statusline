@@ -36,6 +36,25 @@ set laststatus=2  " always show status line even in last window
 set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
 highlight StatusLine ctermbg=Black ctermfg=White cterm=None
 
+" Get automatic statusline colors
+" Note: This is needed for GUI vim color schemes since they do not use cterm codes.
+" Also some schemes use named colors so have to convert into hex by appending '#'.
+" See: https://stackoverflow.com/a/27870856/4970632
+" See: https://vi.stackexchange.com/a/20757/8084
+function! s:default_color(code, ...) abort
+  let hex = synIDattr(hlID('Normal'), a:code . '#')
+  if empty(hex) || hex[0] !=# '#' | return | endif  " unexpected output
+  let shade = a:0 ? a:1 ? 0.3 : 0.0 : 0.0  " shade toward neutral gray
+  let color = '#'  " default hex color
+  for idx in range(1, 5, 2)
+    " vint: -ProhibitUsingUndeclaredVariable
+    let value = str2nr(hex[idx:idx + 1], 16)
+    let value = value - shade * (value - 128)
+    let color .= printf('%02x', float2nr(value))
+  endfor
+  return color
+endfunction
+
 " Autocommands for highlighting
 " Note: Redraw required for CmdlineEnter,CmdlinLeave slow for large files and can
 " trigger for maps, so leave alone. See: https://github.com/neovim/neovim/issues/7583
@@ -43,18 +62,22 @@ highlight StatusLine ctermbg=Black ctermfg=White cterm=None
 " and trying to be clever by passing expand('<afile>') then using getbufvar will color
 " the statusline in the wrong window when a file is changed. No idea why.
 function! s:statusline_color(highlight) abort
+  let s = has('gui_running') ? 'gui' : 'cterm'
+  let flag = has('gui_running') ? '#be0119' : 'Red'  " copied from xkcd scarlet
+  let black = has('gui_running') ? s:default_color('bg', 1) : 'Black'
+  let white = has('gui_running') ? s:default_color('fg', 0) : 'White'
   if getbufvar('%', 'statusline_filechanged', 0)
-    let colorfg = 'White'
-    let colorbg = 'Red'
+    let fgcolor = white
+    let bgcolor = flag
   elseif a:highlight
-    let colorfg = 'Black'
-    let colorbg = 'White'
+    let fgcolor = black
+    let bgcolor = white
   else
-    let colorfg = 'White'
-    let colorbg = 'Black'
+    let fgcolor = white
+    let bgcolor = black
   endif
-  let cterm = 'ctermbg=' . colorbg . ' ctermfg=' . colorfg . ' cterm=None'
-  exe 'highlight StatusLine ' . cterm
+  let colors = s . 'bg=' . bgcolor . ' ' . s . 'fg=' . fgcolor . ' ' . s . '=None'
+  exe 'highlight StatusLine ' . colors
   if mode() =~? '^c' | redraw | endif
 endfunction
 augroup statusline_color
@@ -108,7 +131,8 @@ function! s:file_name() abort
     endif
   endfor
   let truncname = join(parts, '')
-  if len(truncname) > maxlen_of_trunc  " vint: -ProhibitUsingUndeclaredVariable
+  if len(truncname) > maxlen_of_trunc
+    " vint: -ProhibitUsingUndeclaredVariable
     let truncname = '·' . truncname[1 - maxlen_of_trunc:]
   endif
   return truncname
