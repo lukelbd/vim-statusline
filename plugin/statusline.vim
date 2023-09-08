@@ -121,7 +121,7 @@ endfunction
 
 " Shorten a given filename by truncating path segments.
 " https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
-function! s:file_name() abort
+function! s:path_name() abort
   let rawname = '' " used for symlink check
   let bufname = s:relative_path(@%)
   let parts = split(bufname, '\ze[' . escape(s:path_slash, '\') . ']')
@@ -276,7 +276,7 @@ function! StatusRight() abort
 endfunction
 function! StatusLeft() abort
   let names = [
-    \ 's:file_name', 's:git_branch', 's:file_info',
+    \ 's:path_name', 's:git_branch', 's:file_info',
     \ 's:vim_mode', 's:vim_spell', 's:vim_session'
     \ ]
   let line = ''
