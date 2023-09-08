@@ -5,8 +5,20 @@
 " A simple, minimal, black-and-white statusline that helps keep focus on the
 " content in each window and integrates with various plugins.
 "------------------------------------------------------------------------------
-" Script variable for mode
-scriptencoding utf-8
+" Global settings
+scriptencoding utf-8  " required for s:mode_names
+highlight StatusLine ctermbg=Black ctermfg=White cterm=None
+set showcmd  " show command line below statusline
+set noshowmode  " no mode indicator in command line (use the statusline instead)
+set laststatus=2  " always show status line even in last window
+set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
+
+" Script variables
+let s:path_slash = exists('+shellslash') ? (&shellslash ? '/' : '\') : '/'
+let s:maxlen_raw = 20
+let s:maxlen_trunc = 50
+let s:maxlen_parts = 7  " truncate path parts (directories and filename)
+let s:maxlen_subs = 7  " truncate path pieces (seperated by dot/hypen/underscore)
 let s:mode_names = {
   \ 'n':  'Normal',
   \ 'no': 'N-Operator Pending',
@@ -28,13 +40,6 @@ let s:mode_names = {
   \ '!' : 'Shell',
   \ 't':  'Terminal',
   \ }
-
-" Global settings and highlight groups
-set showcmd  " show command line below statusline
-set noshowmode  " no mode indicator in command line (use the statusline instead)
-set laststatus=2  " always show status line even in last window
-set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
-highlight StatusLine ctermbg=Black ctermfg=White cterm=None
 
 " Get automatic statusline colors
 " Note: This is needed for GUI vim color schemes since they do not use cterm codes.
@@ -91,49 +96,64 @@ augroup statusline_color
   au InsertLeave * call s:statusline_color(0)
 augroup END
 
+" Get path relative to working directory using '..'
+" See: https://stackoverflow.com/a/26650027/4970632
+" See: https://docs.python.org/3/library/os.path.html#os.path.relpath
+function! s:relative_path(arg) abort
+  let dots = ''
+  let path = fnamemodify(a:arg, ':p')
+  let common = getcwd()
+  while path ==# substitute(path, common, '', '')
+    let parent = fnamemodify(common, ':h')
+    if parent ==# common  " unsure if possible
+      return a:arg  " return original path
+    endif
+    let dots = '..' . (empty(dots) ? '' : '/' . dots)
+    let common = parent
+  endwhile
+  let forward = substitute(path, common, '', '')
+  if !empty(dots) && !empty(forward)
+    return dots . forward
+  elseif !empty(forward)
+    return forward[1:]
+  endif
+endfunction
+
 " Shorten a given filename by truncating path segments.
 " https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
 function! s:file_name() abort
-  let bufname = @%
-  let maxlen_of_raw = 20
-  let maxlen_of_trunc = 50
-  if bufname =~ $HOME  " replace home directory with tilde
-    let bufname = '~' . split(bufname, $HOME)[-1]
-  endif
-  let maxlen_of_parts = 7  " truncate path parts (directories and filename)
-  let maxlen_of_subparts = 7  " truncate path pieces (seperated by dot/hypen/underscore)
-  let s:slash = exists('+shellslash') ? (&shellslash ? '/' : '\') : '/'
-  let parts = split(bufname, '\ze[' . escape(s:slash, '\') . ']')
   let rawname = '' " used for symlink check
-  for i in range(len(parts))
-    let rawname .= parts[i]  " unfiltered parts
-    if len(bufname) > maxlen_of_raw && len(parts[i]) > maxlen_of_parts  " shorten path
-      let subparts = split(parts[i], '\ze[._]')  " groups to truncate
+  let bufname = s:relative_path(@%)
+  let parts = split(bufname, '\ze[' . escape(s:path_slash, '\') . ']')
+  for idx in range(len(parts))
+    let rawname .= parts[idx]  " unfiltered parts
+    if len(bufname) > s:maxlen_raw && len(parts[idx]) > s:maxlen_parts  " shorten path
+      let subparts = split(parts[idx], '\ze[._]')  " groups to truncate
       if len(subparts) > 1
-        let parts[i] = ''
+        let parts[idx] = ''
         for string in subparts  " e.g. ta_Amon_LONG-MODEL-NAME.nc
-          if len(string) > maxlen_of_subparts - 1
-            let parts[i] .= string[0:maxlen_of_subparts - 2] . '·'
+          if len(string) > s:maxlen_subs - 1
+            let parts[idx] .= string[0:s:maxlen_subs - 2] . '·'
           else
-            let parts[i] .= string
+            let parts[idx] .= string
           endif
         endfor
       else
-        let parts[i] = parts[i][0:maxlen_of_parts - 2] . '·'
+        let parts[idx] = parts[idx][0:s:maxlen_parts - 2] . '·'
       endif
     endif
     if getftype(rawname) ==# 'link'  " indicator if this part of filename is symlink
-      if parts[i][0] == s:slash
-        let parts[i] = parts[i][0] . '↪ ./' . parts[i][1:]
+      if parts[idx][0] == s:path_slash
+        let parts[idx] = parts[idx][0] . '↪ ./' . parts[idx][1:]
       else
-        let parts[i] = '↪ ./' . parts[i]
+        let parts[idx] = '↪ ./' . parts[idx]
       endif
     endif
   endfor
   let truncname = join(parts, '')
-  if len(truncname) > maxlen_of_trunc
+  if len(truncname) > s:maxlen_trunc
     " vint: -ProhibitUsingUndeclaredVariable
-    let truncname = '·' . truncname[1 - maxlen_of_trunc:]
+    let truncname = '·' . truncname[1 - s:maxlen_trunc:]
   endif
   return truncname
 endfunction
@@ -246,7 +266,14 @@ function! s:loc_info() abort
     \ . ')'
 endfunction
 
-" The driver functions used to fill the statusline
+" Driver functions used to fill the statusline
+" Also make useful 'path' function public
+function! RelativePath(...) abort
+  return call('s:relative_path', a:000)
+endfunction
+function! StatusRight() abort
+  return s:loc_tag() . s:loc_info()
+endfunction
 function! StatusLeft() abort
   let names = [
     \ 's:file_name', 's:git_branch', 's:file_info',
@@ -262,7 +289,4 @@ function! StatusLeft() abort
     let line .= part
   endfor
   return line
-endfunction
-function! StatusRight() abort
-  return s:loc_tag() . s:loc_info()
 endfunction
