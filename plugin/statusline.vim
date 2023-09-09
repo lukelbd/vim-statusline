@@ -103,7 +103,7 @@ function! s:relative_path(arg) abort
   let dots = ''
   let path = fnamemodify(a:arg, ':p')
   let common = getcwd()
-  while path ==# substitute(path, common, '', '')
+  while path ==# substitute(path, escape(common, '~'), '', '')
     let parent = fnamemodify(common, ':h')
     if parent ==# common  " unsure if possible
       return a:arg  " return original path
@@ -111,7 +111,7 @@ function! s:relative_path(arg) abort
     let dots = '..' . (empty(dots) ? '' : '/' . dots)
     let common = parent
   endwhile
-  let forward = substitute(path, common, '', '')
+  let forward = substitute(path, escape(common, '~'), '', '')
   if !empty(dots) && !empty(forward)
     return dots . forward
   elseif !empty(forward)
