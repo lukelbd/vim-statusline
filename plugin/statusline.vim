@@ -143,10 +143,10 @@ function! s:path_name() abort
       endif
     endif
     if getftype(rawname) ==# 'link'  " indicator if this part of filename is symlink
-      if parts[idx][0] == s:path_slash
-        let parts[idx] = parts[idx][0] . '↪ ./' . parts[idx][1:]
+      if s:path_slash ==# parts[idx][0]
+        let parts[idx] = s:path_slash . '↪ ' . parts[idx][1:]
       else
-        let parts[idx] = '↪ ./' . parts[idx]
+        let parts[idx] = '↪ ' . parts[idx]
       endif
     endif
   endfor
