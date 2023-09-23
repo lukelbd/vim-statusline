@@ -1,5 +1,4 @@
 "------------------------------------------------------------------------------
-" Name:   statusline.vim
 " Author: Luke Davis (lukelbd@gmail.com)
 " Date:   2018-09-03
 " A simple, minimal, black-and-white statusline that helps keep focus on the
