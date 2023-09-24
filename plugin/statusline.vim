@@ -1,8 +1,8 @@
 "------------------------------------------------------------------------------
 " Author: Luke Davis (lukelbd@gmail.com)
 " Date:   2018-09-03
-" A simple, minimal, black-and-white statusline that helps keep focus on the
-" content in each window and integrates with various plugins.
+" A minimal, informative, black-and-white statusline that helps keep focus
+" on the content in each window and integrates with other useful plugins.
 "------------------------------------------------------------------------------
 " Global settings
 scriptencoding utf-8  " required for s:mode_names
