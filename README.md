@@ -5,7 +5,7 @@ Vim plugin providing minimalist black-and-white "statusline" with some handy
 features. The statusline will look something like this:
 
 ```
-/path/to/file (git_branch) [filetype:filesize] [mode:paste_indicator] [caps_lock_indicator]     [ctags_location] [column:line/nlines] (percent)
+/path/to/file (git_branch) [filetype:filesize] [mode:paste_indicator] [caps_lock_indicator]     [ctags_location] [column:line/nlines:foldlevel] (percent)
 ```
 
 The statusline will be colored white in insert mode, black in normal mode, and red

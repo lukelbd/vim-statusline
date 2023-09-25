@@ -257,12 +257,14 @@ endfunction
 
 " Current column number, current line number, total line number, and percentage
 function! s:loc_info() abort
-  return ' ['
-    \ . col('.')
-    \ . ':' . line('.') . '/' . line('$')
-    \ . '] ('
-    \ . (100 * line('.') / line('$')) . '%'
-    \ . ')'
+  if &l:foldenable && &l:foldlevel < 10
+    let folds = ':' . &l:foldlevel
+  else
+    let folds = ''
+  endif
+  let cursor = col('.') . ':' . line('.') . '/' . line('$')
+  let ratio = (100 * line('.') / line('$')) . '%'
+  return ' [' . cursor . folds . '] (' . ratio . ')'
 endfunction
 
 " Driver functions used to fill the statusline
