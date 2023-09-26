@@ -197,6 +197,7 @@ endfunction
 " Note: iminsert and imsearch controls whether lmaps are activated, which
 " corresponds to caps lock mode in personal setup.
 function! s:vim_mode() abort
+  let folds = &l:foldenable && &l:foldlevel < 10 ? ':Z' . &l:foldlevel : ''
   if &paste  " paste mode indicator
     let string = 'Paste'
   elseif exists('b:caps_lock') && b:caps_lock
@@ -204,7 +205,7 @@ function! s:vim_mode() abort
   else
     let string = get(s:mode_names, mode(), 'Unknown')
   endif
-  return ' [' . string . ']'
+  return ' [' . string . folds . ']'
 endfunction
 
 " Whether spell checking is US or UK english
@@ -239,12 +240,11 @@ endfunction
 " Tag kind and name using lukelbd/vim-tags
 function! s:loc_tag() abort
   let maxlen = 20  " can be changed
+  let string = ''
   if exists('*tags#current_tag')
     let string = tags#current_tag()
   elseif exists('*tagbar#currenttag')
     let string = tagbar#currenttag()
-  else
-    let string = ''
   endif
   if empty(string)
     return ''
@@ -257,14 +257,9 @@ endfunction
 
 " Current column number, current line number, total line number, and percentage
 function! s:loc_info() abort
-  if &l:foldenable && &l:foldlevel < 10
-    let folds = ':' . &l:foldlevel
-  else
-    let folds = ''
-  endif
   let cursor = col('.') . ':' . line('.') . '/' . line('$')
   let ratio = (100 * line('.') / line('$')) . '%'
-  return ' [' . cursor . folds . '] (' . ratio . ')'
+  return ' [' . cursor . '] (' . ratio . ')'
 endfunction
 
 " Driver functions used to fill the statusline
