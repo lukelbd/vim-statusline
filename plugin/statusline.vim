@@ -6,7 +6,6 @@
 "------------------------------------------------------------------------------
 " Global settings
 scriptencoding utf-8  " required for s:mode_names
-highlight StatusLine ctermbg=Black ctermfg=White cterm=None
 set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
@@ -66,22 +65,25 @@ endfunction
 " and trying to be clever by passing expand('<afile>') then using getbufvar will color
 " the statusline in the wrong window when a file is changed. No idea why.
 function! s:statusline_color(highlight) abort
-  let s = has('gui_running') ? 'gui' : 'cterm'
+  let name = has('gui_running') ? 'gui' : 'cterm'
   let flag = has('gui_running') ? '#be0119' : 'Red'  " copied from xkcd scarlet
   let black = has('gui_running') ? s:default_color('bg', 1) : 'Black'
   let white = has('gui_running') ? s:default_color('fg', 0) : 'White'
+  let none = has('gui_running') ? 'background' : 'None'  " see :help guibg
   if getbufvar('%', 'statusline_filechanged', 0)
-    let fgcolor = white
-    let bgcolor = flag
+    let front = white
+    let back = flag
   elseif a:highlight
-    let fgcolor = black
-    let bgcolor = white
+    let front = black
+    let back = white
   else
-    let fgcolor = white
-    let bgcolor = black
+    let front = white
+    let back = black
   endif
-  let colors = s . 'bg=' . bgcolor . ' ' . s . 'fg=' . fgcolor . ' ' . s . '=None'
-  exe 'highlight StatusLine ' . colors
+  let unfocused = name . 'bg=' . none . ' ' . name . 'fg=' . black . ' ' . name . '=None'
+  let focused = name . 'bg=' . back . ' ' . name . 'fg=' . front . ' ' . name . '=None'
+  exe 'highlight StatusLineNC ' . unfocused
+  exe 'highlight StatusLine ' . focused
   if mode() =~? '^c' | redraw | endif
 endfunction
 augroup statusline_color
