@@ -14,9 +14,9 @@ set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
 " Script variables
 let s:path_slash = exists('+shellslash') ? (&shellslash ? '/' : '\') : '/'
 let s:maxlen_raw = 20
-let s:maxlen_trunc = 50
+let s:maxlen_trunc = 40
 let s:maxlen_parts = 7  " truncate path parts (directories and filename)
-let s:maxlen_subs = 7  " truncate path pieces (seperated by dot/hypen/underscore)
+let s:maxlen_subs = 5  " truncate path pieces (seperated by dot/hypen/underscore)
 let s:mode_names = {
   \ 'n':  'Normal',
   \ 'no': 'N-Operator Pending',
@@ -127,28 +127,33 @@ function! s:path_name() abort
   let bufname = s:relative_path(@%)
   let parts = split(bufname, '\ze[' . escape(s:path_slash, '\') . ']')
   for idx in range(len(parts))
-    let rawname .= parts[idx]  " unfiltered parts
-    if len(bufname) > s:maxlen_raw && len(parts[idx]) > s:maxlen_parts  " shorten path
-      let subparts = split(parts[idx], '\ze[._]')  " groups to truncate
-      if len(subparts) > 1
-        let parts[idx] = ''
-        for string in subparts  " e.g. ta_Amon_LONG-MODEL-NAME.nc
-          if len(string) > s:maxlen_subs - 1
-            let parts[idx] .= string[0:s:maxlen_subs - 2] . '·'
+    let part = parts[idx]
+    let rawname .= part  " unfiltered parts
+    if len(bufname) > s:maxlen_raw && len(part) > s:maxlen_parts  " shorten path
+      let chars = idx == len(parts) - 1 ? '._-' : '_-'
+      let groups = split(part, '\ze[' . chars . ']')  " groups to truncate
+      if len(groups) == 1
+        let part = part[0:s:maxlen_parts - 1] . '·'
+        let parts[idx] = part
+      else
+        let part = ''
+        for piece in groups
+          if len(piece) > s:maxlen_subs + 1  " include leading delimiter
+            let part .= piece[0:s:maxlen_subs - 1] . '·'
           else
-            let parts[idx] .= string
+            let part .= piece
           endif
         endfor
-      else
-        let parts[idx] = parts[idx][0:s:maxlen_parts - 2] . '·'
+        let parts[idx] = part
       endif
     endif
     if getftype(rawname) ==# 'link'  " indicator if this part of filename is symlink
-      if s:path_slash ==# parts[idx][0]
-        let parts[idx] = s:path_slash . '↪ ' . parts[idx][1:]
+      if s:path_slash ==# part[0]
+        let part = s:path_slash . '↪ ' . part[1:]
       else
-        let parts[idx] = '↪ ' . parts[idx]
+        let part = '↪ ' . part
       endif
+      let parts[idx] = part
     endif
   endfor
   let truncname = join(parts, '')
