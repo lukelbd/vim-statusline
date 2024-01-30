@@ -80,10 +80,10 @@ function! s:statusline_color(highlight) abort
     let front = white
     let back = black
   endif
-  let unfocused = name . 'bg=' . none . ' ' . name . 'fg=' . black . ' ' . name . '=None'
-  let focused = name . 'bg=' . back . ' ' . name . 'fg=' . front . ' ' . name . '=None'
-  exe 'highlight StatusLineNC ' . unfocused
-  exe 'highlight StatusLine ' . focused
+  let focus = name . 'bg=' . back . ' ' . name . 'fg=' . front . ' ' . name . '=None'
+  let nofocus = name . 'bg=' . none . ' ' . name . 'fg=' . black . ' ' . name . '=None'
+  exe 'highlight StatusLine ' . focus
+  exe 'highlight StatusLineNC ' . nofocus
   if mode() =~? '^c' | redraw | endif
 endfunction
 augroup statusline_color
@@ -133,13 +133,13 @@ function! s:path_name() abort
       let chars = idx == len(parts) - 1 ? '._-' : '_-'
       let groups = split(part, '\ze[' . chars . ']')  " groups to truncate
       if len(groups) == 1
-        let part = part[0:s:maxlen_parts - 1] . '·'
+        let part = strcharpart(part, 0, s:maxlen_parts) . '·'
         let parts[idx] = part
       else
         let part = ''
         for piece in groups
           if len(piece) > s:maxlen_subs + 1  " include leading delimiter
-            let part .= piece[0:s:maxlen_subs - 1] . '·'
+            let part .= strcharpart(piece, 0, s:maxlen_subs) . '·'
           else
             let part .= piece
           endif
@@ -156,12 +156,13 @@ function! s:path_name() abort
       let parts[idx] = part
     endif
   endfor
-  let truncname = join(parts, '')
-  if len(truncname) > s:maxlen_trunc
-    " vint: -ProhibitUsingUndeclaredVariable
-    let truncname = '·' . truncname[1 - s:maxlen_trunc:]
+  let path = join(parts, '')
+  let width = strwidth(path)
+  if width > s:maxlen_trunc  " including multi-byte characters e.g. symlink
+    let path = strcharpart(path, width - s:maxlen_trunc, s:maxlen_trunc)
+    let path = '·' . path
   endif
-  return truncname
+  return path
 endfunction
 
 " Current git branch using fugitive
