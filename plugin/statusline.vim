@@ -167,10 +167,22 @@ endfunction
 
 " Current git branch using fugitive
 function! s:git_branch() abort
+  let info = ''
   if exists('*FugitiveHead') && !empty(FugitiveHead())
-    return ' (' . FugitiveHead() . ')'
-  else
+    let info .= FugitiveHead()
+  endif
+  if exists('*GitGutterGetHunkSummary')
+    let [ag, mg, rg] = GitGutterGetHunkSummary()
+    for [key, val] in [['+', ag], ['~', mg], ['-', rg]]
+      if !empty(val)  " not zero or empty
+        let info .= key . val
+      endif
+    endfor
+  endif
+  if empty(info)
     return ''
+  else
+    return ' (' . info . ')'
   endif
 endfunction
 
