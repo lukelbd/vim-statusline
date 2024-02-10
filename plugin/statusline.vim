@@ -12,11 +12,12 @@ set laststatus=2  " always show status line even in last window
 set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
 
 " Script variables
-let s:path_slash = exists('+shellslash') ? (&shellslash ? '/' : '\') : '/'
-let s:maxlen_raw = 20
-let s:maxlen_trunc = 40
-let s:maxlen_parts = 7  " truncate path parts (directories and filename)
-let s:maxlen_subs = 5  " truncate path pieces (seperated by dot/hypen/underscore)
+let s:slash_string = !exists('+shellslash') ? '/' : &shellslash ? '/' : '\'
+let s:slash_regex = escape(s:slash_string, '\')
+let s:maxlen_abs = 40  " maximum length after truncation
+let s:maxlen_raw = 20  " maximum length without truncation
+let s:maxlen_part = 7  " truncate path parts (directories and filename)
+let s:maxlen_piece = 5  " truncate path pieces (seperated by dot/hypen/underscore)
 let s:mode_names = {
   \ 'n':  'Normal',
   \ 'no': 'N-Operator Pending',
@@ -125,21 +126,24 @@ endfunction
 function! s:path_name() abort
   let rawname = '' " used for symlink check
   let bufname = s:relative_path(@%)
-  let parts = split(bufname, '\ze[' . escape(s:path_slash, '\') . ']')
+  let parts = split(bufname, '\ze' . s:slash_regex)
   for idx in range(len(parts))
     let part = parts[idx]
+    let maxlen = s:maxlen_part + (idx > 0)
     let rawname .= part  " unfiltered parts
-    if len(bufname) > s:maxlen_raw && len(part) > s:maxlen_parts  " shorten path
+    if strwidth(part) > maxlen && strwidth(bufname) > s:maxlen_raw
       let chars = idx == len(parts) - 1 ? '._-' : '_-'
-      let groups = split(part, '\ze[' . chars . ']')  " groups to truncate
-      if len(groups) == 1
-        let part = strcharpart(part, 0, s:maxlen_parts) . '·'
+      let pieces = split(part, '\ze[' . chars . ']')  " pieces to truncate
+      if len(pieces) == 1
+        let part = strcharpart(part, 0, maxlen - 1) . '·'
         let parts[idx] = part
       else
         let part = ''
-        for piece in groups
-          if len(piece) > s:maxlen_subs + 1  " include leading delimiter
-            let part .= strcharpart(piece, 0, s:maxlen_subs) . '·'
+        for jdx in range(len(pieces))
+          let piece = pieces[jdx]
+          let maxlen = s:maxlen_piece + (jdx > 0)
+          if strwidth(piece) > maxlen  " include leading delimiter
+            let part .= strcharpart(piece, 0, maxlen - 1) . '·'
           else
             let part .= piece
           endif
@@ -148,8 +152,8 @@ function! s:path_name() abort
       endif
     endif
     if getftype(rawname) ==# 'link'  " indicator if this part of filename is symlink
-      if s:path_slash ==# part[0]
-        let part = s:path_slash . '↪ ' . part[1:]
+      if s:slash_string ==# part[0]
+        let part = s:slash_string . '↪ ' . part[1:]
       else
         let part = '↪ ' . part
       endif
@@ -158,8 +162,8 @@ function! s:path_name() abort
   endfor
   let path = join(parts, '')
   let width = strwidth(path)
-  if width > s:maxlen_trunc  " including multi-byte characters e.g. symlink
-    let path = strcharpart(path, width - s:maxlen_trunc, s:maxlen_trunc)
+  if width > s:maxlen_abs  " including multi-byte characters e.g. symlink
+    let path = strcharpart(path, width - s:maxlen_abs, s:maxlen_abs)
     let path = '·' . path
   endif
   return path
@@ -269,8 +273,8 @@ function! s:loc_tag() abort
   if empty(string)
     return ''
   endif
-  if len(string) >= maxlen
-    let string = string[:maxlen - 1] . '···'
+  if strwidth(string) >= maxlen
+    let string = strcharpart(string, 0, maxlen) . '···'
   endif
   return ' [' . string . ']'
 endfunction
@@ -296,10 +300,10 @@ function! StatusLeft() abort
     \ 's:vim_mode', 's:vim_spell', 's:vim_session'
     \ ]
   let line = ''
-  let maxlen = winwidth(0) - len(StatusRight()) - 1
+  let maxlen = winwidth(0) - strwidth(StatusRight()) - 1
   for name in names  " note cannot use function() handles for locals
     let part = call(name, [])
-    if len(line . part) > maxlen
+    if strwidth(line . part) > maxlen
       return line
     endif
     let line .= part
