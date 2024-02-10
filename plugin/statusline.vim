@@ -71,7 +71,10 @@ function! s:statusline_color(highlight) abort
   let black = has('gui_running') ? s:default_color('bg', 1) : 'Black'
   let white = has('gui_running') ? s:default_color('fg', 0) : 'White'
   let none = has('gui_running') ? 'background' : 'None'  " see :help guibg
-  if getbufvar('%', 'statusline_filechanged', 0)
+  if getbufvar('%', 'fugitive_type', '') ==# 'blob'
+    let front = flag
+    let back = black
+  elseif getbufvar('%', 'statusline_filechanged', 0)
     let front = white
     let back = flag
   elseif a:highlight
@@ -102,22 +105,28 @@ augroup END
 " See: https://stackoverflow.com/a/26650027/4970632
 " See: https://docs.python.org/3/library/os.path.html#os.path.relpath
 function! s:relative_path(arg) abort
-  let dots = ''
-  let path = fnamemodify(a:arg, ':p')
-  let common = getcwd()
-  while path ==# substitute(path, escape(common, '~'), '', '')
-    let parent = fnamemodify(common, ':h')
-    if parent ==# common  " unsure if possible
-      return a:arg  " return original path
-    endif
-    let dots = '..' . (empty(dots) ? '' : '/' . dots)
-    let common = parent
+  let head = '^fugitive:' . repeat(s:slash_regex, 2)
+  let init = substitute(a:arg, head, '', '')
+  let blob = '\.git' . repeat(s:slash_regex, 2) . '\x\{33}\(\x\{7}\)'
+  let init = substitute(init, blob, '\1', '')
+  let path = fnamemodify(init, ':p')
+  let dots = ''  " header '..' dots
+  let head = getcwd()  " initial common header
+  let regex = '^' . escape(head, '[]\.*$~')
+  while path !~# regex
+    let ihead = fnamemodify(head, ':h')
+    if ihead ==# head | return init | endif  " fallback to original
+    let head = ihead  " alternative common
+    let dots = '..' . (empty(dots) ? '' : s:slash_string . dots)
+    let regex = '^' . escape(head, '[]\.*$~')
   endwhile
-  let forward = substitute(path, escape(common, '~'), '', '')
-  if !empty(dots) && !empty(forward)
-    return dots . forward
-  elseif !empty(forward)
-    return forward[1:]
+  let tail = substitute(path, regex, '', '')
+  if empty(tail)
+    return path
+  elseif !empty(dots)
+    return dots . tail
+  else  " remove header slash
+    return substitute(tail, '^' . s:slash_regex, '', '')
   endif
 endfunction
 
