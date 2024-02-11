@@ -185,10 +185,10 @@ function! s:git_branch() abort
     let info .= FugitiveHead()
   endif
   if exists('*GitGutterGetHunkSummary')
-    let [ag, mg, rg] = GitGutterGetHunkSummary()
-    for [key, val] in [['+', ag], ['~', mg], ['-', rg]]
-      if !empty(val)  " not zero or empty
-        let info .= key . val
+    let [acnt, mcnt, rcnt] = GitGutterGetHunkSummary()
+    for [key, cnt] in [['+', acnt], ['~', mcnt], ['-', rcnt]]
+      if !empty(cnt)  " not zero or empty
+        let info .= key . cnt
       endif
     endfor
   endif
