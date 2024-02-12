@@ -72,8 +72,8 @@ function! s:statusline_color(highlight) abort
   let white = has('gui_running') ? s:default_color('fg', 0) : 'White'
   let none = has('gui_running') ? 'background' : 'None'  " see :help guibg
   if getbufvar('%', 'fugitive_type', '') ==# 'blob'
-    let front = flag
-    let back = black
+    let front = black
+    let back = flag
   elseif getbufvar('%', 'statusline_filechanged', 0)
     let front = white
     let back = flag
