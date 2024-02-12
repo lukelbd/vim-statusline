@@ -131,7 +131,7 @@ function! s:relative_path(arg) abort
 endfunction
 
 " Shorten a given filename by truncating path segments.
-" https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
+" See: https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
 function! s:path_name() abort
   let rawname = '' " used for symlink check
   let bufname = s:relative_path(@%)
