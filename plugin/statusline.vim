@@ -9,42 +9,26 @@ scriptencoding utf-8  " required for s:mode_names
 set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
-set statusline=%{StatusLeft()}\ %=\ %{StatusRight()}
+set statusline=%{StatusLeft()}\ %=%{StatusRight()}
 
-" Script variables
-let s:slash_string = !exists('+shellslash') ? '/' : &shellslash ? '/' : '\'
-let s:slash_regex = escape(s:slash_string, '\')
+" Configuration variables
+let s:current_mode = {
+  \ 'n':  'N', 'no': 'O', 'i':  'I', 'R' : 'R', 'Rv': 'RV',
+  \ 'v':  'V', 'V' : 'VL', '': 'VB', 's':  'S', 'S' : 'SL', '': 'SB',
+  \ 'c':  'C', 'ce': 'CE', 'cv': 'CV', 'r' : 'CP', 'r?': 'CI', 'rm': 'M', '!' : '!', 't':  'T',
+\ }
 let s:maxlen_abs = 40  " maximum length after truncation
 let s:maxlen_raw = 20  " maximum length without truncation
 let s:maxlen_part = 7  " truncate path parts (directories and filename)
 let s:maxlen_piece = 5  " truncate path pieces (seperated by dot/hypen/underscore)
-let s:mode_names = {
-  \ 'n':  'Normal',
-  \ 'no': 'N-Operator Pending',
-  \ 'v':  'Visual',
-  \ 'V' : 'V-Line',
-  \ '': 'V-Block',
-  \ 's':  'Select',
-  \ 'S' : 'S-Line',
-  \ '': 'S-Block',
-  \ 'i':  'Insert',
-  \ 'R' : 'Replace',
-  \ 'Rv': 'V-Replace',
-  \ 'c':  'Command',
-  \ 'r' : 'Prompt',
-  \ 'cv': 'Vim Ex',
-  \ 'ce': 'Ex',
-  \ 'rm': 'More',
-  \ 'r?': 'Confirm',
-  \ '!' : 'Shell',
-  \ 't':  'Terminal',
-  \ }
+let s:slash_string = !exists('+shellslash') ? '/' : &shellslash ? '/' : '\'
+let s:slash_regex = escape(s:slash_string, '\')
 
 " Get automatic statusline colors
 " Note: This is needed for GUI vim color schemes since they do not use cterm codes.
 " Also some schemes use named colors so have to convert into hex by appending '#'.
-" See: https://stackoverflow.com/a/27870856/4970632
 " See: https://vi.stackexchange.com/a/20757/8084
+" See: https://stackoverflow.com/a/27870856/4970632
 function! s:default_color(code, ...) abort
   let hex = synIDattr(hlID('Normal'), a:code . '#')
   if empty(hex) || hex[0] !=# '#' | return | endif  " unexpected output
@@ -63,8 +47,7 @@ endfunction
 " Note: Redraw required for CmdlineEnter,CmdlinLeave slow for large files and can
 " trigger for maps, so leave alone. See: https://github.com/neovim/neovim/issues/7583
 " Note: For some reason statusline_color must always search b:statusline_filechanged
-" and trying to be clever by passing expand('<afile>') then using getbufvar will color
-" the statusline in the wrong window when a file is changed. No idea why.
+" passing expand('<afile>') then using getbufvar colors statusline in wrong window.
 function! s:statusline_color(highlight) abort
   let name = has('gui_running') ? 'gui' : 'cterm'
   let flag = has('gui_running') ? '#be0119' : 'Red'  " copied from xkcd scarlet
@@ -101,7 +84,7 @@ augroup statusline_color
   au InsertLeave * call s:statusline_color(0)
 augroup END
 
-" Get path relative to working directory using '..'
+" Get path relative to working directory using successive '..' directives
 " See: https://stackoverflow.com/a/26650027/4970632
 " See: https://docs.python.org/3/library/os.path.html#os.path.relpath
 function! s:relative_path(arg) abort
@@ -130,7 +113,8 @@ function! s:relative_path(arg) abort
   endif
 endfunction
 
-" Shorten a given filename by truncating path segments.
+" Shorten a given filename by truncating both path segments and leading
+" directory name. Also indicate symlink redirects when relevant.
 " See: https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
 function! s:path_name() abort
   let rawname = '' " used for symlink check
@@ -172,28 +156,29 @@ function! s:path_name() abort
   let path = join(parts, '')
   let width = strwidth(path)
   if width > s:maxlen_abs  " including multi-byte characters e.g. symlink
-    let path = strcharpart(path, width - s:maxlen_abs, s:maxlen_abs)
+    let path = strcharpart(path, width - s:maxlen_abs)
     let path = '·' . path
   endif
   return path
 endfunction
 
 " Current git branch using fugitive
-function! s:git_branch() abort
-  let info = ''
-  if exists('*FugitiveHead') && !empty(FugitiveHead())
-    let info .= FugitiveHead()
+function! s:git_info() abort
+  if exists('*FugitiveHead')
+    let info = FugitiveHead()  " possibly empty
+  else
+    let info = ''
   endif
   if exists('*GitGutterGetHunkSummary')
     let [acnt, mcnt, rcnt] = GitGutterGetHunkSummary()
-    for [key, cnt] in [['+', acnt], ['~', mcnt], ['-', rcnt]]
-      if !empty(cnt)  " not zero or empty
-        let info .= key . cnt
-      endif
+    let pairs = [['+', acnt], ['~', mcnt], ['-', rcnt]]
+    for [key, cnt] in pairs
+      if empty(cnt) | continue | endif
+      let info .= key . cnt
     endfor
   endif
   if empty(info)
-    return ''
+    return info
   else
     return ' (' . info . ')'
   endif
@@ -201,10 +186,10 @@ endfunction
 
 " Current file type and size in human-readable units
 function! s:file_info() abort
-  if empty(&filetype)
-    let string = 'unknown:'
+  if empty(&l:filetype)
+    let info = 'unknown:'
   else
-    let string = &filetype . ':'
+    let info = &l:filetype . ':'
   endif
   let bytes = getfsize(expand('%:p'))
   if bytes >= 1024
@@ -214,108 +199,91 @@ function! s:file_info() abort
     let mbytes = kbytes / 1000
   endif
   if bytes <= 0
-    let string .= 'null'
+    let info .= 'null'
   endif
   if exists('mbytes')
-    let string .= mbytes . 'MB'
+    let info .= mbytes . 'MB'
   elseif exists('kbytes')
-    let string .= kbytes . 'KB'
+    let info .= kbytes . 'KB'
   else
-    let string .= bytes . 'B'
+    let info .= bytes . 'B'
   endif
-  return ' [' . string . ']'
+  return ' [' . info . ']'
 endfunction
 
 " Current mode including indicator if in paste mode
-" Note: iminsert and imsearch controls whether lmaps are activated, which
-" corresponds to caps lock mode in personal setup.
-function! s:vim_mode() abort
-  let folds = &l:foldenable && &l:foldlevel < 10 ? ':Z' . &l:foldlevel : ''
-  if &paste  " paste mode indicator
-    let string = 'Paste'
-  elseif exists('b:caps_lock') && b:caps_lock
-    let string = 'CapsLock'
-  else
-    let string = get(s:mode_names, mode(), 'Unknown')
-  endif
-  return ' [' . string . folds . ']'
-endfunction
-
-" Whether spell checking is US or UK english
-" Todo: Add other languages?
-function! s:vim_spell() abort
-  if &spell
-    if &spelllang ==? 'en_us'
-      return ' [US]'
-    elseif &spelllang ==? 'en_gb'
-      return ' [UK]'
-    else
-      return ' [Spell]'
-    endif
-  else
-    return ''
-  endif
-endfunction
-
-" Print the session status using obsession
 " Note: This was adapted from ObsessionStatus. Previously we tested existence
 " of ObsessionStatus below but that caused race condition issue.
-function! s:vim_session() abort
-  if empty(v:this_session)  " should always be set by vim-obsession
-    return ''
+function! s:vim_info() abort
+  let code = &l:spelllang
+  if &l:paste  " 'p' for paste
+    let info = 'P'
+  elseif &l:iminsert  " 'l' for langmap
+    let info = 'L'
+  else  " default mode
+    let info = get(s:current_mode, mode(), '?')
+  endif
+  if &l:foldenable && &l:foldlevel < 10
+    let info .= ':Z' . &l:foldlevel
+  endif
+  if &l:spell && code =~? 'en_[a-z]\+'
+    let info .= ':' . substitute(code, '\c^en_\([a-z]\+\).*$', '\1', '')
+  elseif &l:spell
+    let info .= ':' . substitute(code, '\c[^a-z].*$', '', '')
+  endif
+  if empty(v:this_session)
+    let flag = ''
   elseif exists('g:this_obsession')
-    return ' [$]'  " vim-obsession session
+    let flag = ' [$]'
   else
-    return ' [S]'  " regular vim session
+    let flag = ' [S]'
   endif
+  return  toupper(' [' . info . ']' . flag)
 endfunction
 
-" Tag kind and name using lukelbd/vim-tags
-function! s:loc_tag() abort
-  let maxlen = 20  " can be changed
-  let string = ''
-  if exists('*tags#current_tag')
-    let string = tags#current_tag()
-  elseif exists('*tagbar#currenttag')
-    let string = tagbar#currenttag()
-  endif
-  if empty(string)
-    return ''
-  endif
-  if strwidth(string) >= maxlen
-    let string = strcharpart(string, 0, maxlen) . '···'
-  endif
-  return ' [' . string . ']'
-endfunction
-
-" Current column number, current line number, total line number, and percentage
+" Current column number, current line number, total line number, and
+" percentage. Also prepend tag kind and name using lukelbd/vim-tags
 function! s:loc_info() abort
-  let cursor = col('.') . ':' . line('.') . '/' . line('$')
-  let ratio = (100 * line('.') / line('$')) . '%'
-  return ' [' . cursor . '] (' . ratio . ')'
+  let maxlen = 20  " can be changed
+  if exists('*tags#current_tag')
+    let info = tags#current_tag()
+  elseif exists('*tagbar#currenttag')
+    let info = tagbar#currenttag()
+  else
+    let info = ''
+  endif
+  if strwidth(info) > maxlen
+    let info = strcharpart(info, 0, maxlen - 1) . '·'
+  endif
+  if !empty(info)
+    let info = '[' . info . '] '
+  endif
+  let absolute = col('.') . ':' . line('.') . '/' . line('$')
+  let relative = (100 * line('.') / line('$')) . '%'
+  return info . '[' . absolute . '] (' . relative . ')'
 endfunction
 
-" Driver functions used to fill the statusline
-" Also make useful 'path' function public
+" Public functions used to fill the statusline. Also make the
+" path function public (used across personal dotfiles repo).
 function! RelativePath(...) abort
   return call('s:relative_path', a:000)
 endfunction
 function! StatusRight() abort
-  return s:loc_tag() . s:loc_info()
+  return s:loc_info()
 endfunction
 function! StatusLeft() abort
-  let names = [
-    \ 's:path_name', 's:git_branch', 's:file_info',
-    \ 's:vim_mode', 's:vim_spell', 's:vim_session'
-    \ ]
+  let names = ['s:path_name', 's:git_info', 's:file_info', 's:vim_info']
   let line = ''
-  let maxlen = winwidth(0) - strwidth(StatusRight()) - 1
+  let maxsize = winwidth(0) - strwidth(StatusRight()) - 1
   for name in names  " note cannot use function() handles for locals
     let part = call(name, [])
-    if strwidth(line . part) > maxlen
-      return line
+    let size = strwidth(part)
+    if empty(line) && size > maxsize && maxsize > 0
+      let part = '·' . strcharpart(part, size - maxsize + 1)
     endif
-    let line .= part
+    if strwidth(line . part) <= maxsize
+      let line .= part
+    endif
   endfor
   return line
 endfunction
