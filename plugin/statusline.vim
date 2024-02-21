@@ -278,7 +278,8 @@ function! StatusLeft() abort
   for name in names  " note cannot use function() handles for locals
     let part = call(name, [])
     let size = strwidth(part)
-    if empty(line) && size > maxsize && maxsize > 0
+    let trunc = strcharpart(part, 0, 1) !=# '·'
+    if !trunc && empty(line) && size > maxsize && maxsize > 0
       let part = '·' . strcharpart(part, size - maxsize + 1)
     endif
     if strwidth(line . part) <= maxsize
