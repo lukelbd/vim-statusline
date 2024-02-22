@@ -198,15 +198,12 @@ function! s:file_info() abort
   if exists('kbytes') && kbytes >= 1000
     let mbytes = kbytes / 1000
   endif
-  if bytes <= 0
-    let info .= 'null'
-  endif
   if exists('mbytes')
     let info .= mbytes . 'MB'
   elseif exists('kbytes')
     let info .= kbytes . 'KB'
   else
-    let info .= bytes . 'B'
+    let info .= max([bytes, 0]) . 'B'
   endif
   return ' [' . info . ']'
 endfunction
