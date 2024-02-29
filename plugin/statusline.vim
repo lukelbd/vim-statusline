@@ -11,6 +11,20 @@ set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
 set statusline=%{StatusLeft()}\ %=%{StatusRight()}
 
+" Autocommands for highlighting
+" Note: For some reason statusline_color must always search b:statusline_filechanged
+" passing expand('<afile>') then using getbufvar colors statusline in wrong window.
+augroup statusline_color
+  au!
+  au BufEnter,TextChanged,InsertEnter * silent! checktime
+  au BufReadPost,BufWritePost,BufNewFile * call setbufvar(expand('<afile>'), 'statusline_filechanged', 0)
+  au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
+  au FileChangedShell * call s:statusline_color(mode() =~? '^[ir]')  " triggers after
+  au BufEnter,TextChanged * call s:statusline_color(mode() =~? '^[ir]')
+  au InsertEnter * call s:statusline_color(1)
+  au InsertLeave * call s:statusline_color(0)
+augroup END
+
 " Configuration variables
 let s:current_mode = {
   \ 'n':  'N', 'no': 'O', 'i':  'I', 'R' : 'R', 'Rv': 'RV',
@@ -24,13 +38,11 @@ let s:maxlen_piece = 5  " truncate path pieces (seperated by dot/hypen/underscor
 let s:slash_string = !exists('+shellslash') ? '/' : &shellslash ? '/' : '\'
 let s:slash_regex = escape(s:slash_string, '\')
 
-" Get automatic statusline colors
-" Note: This is needed for GUI vim color schemes since they do not use cterm codes.
-" Also some schemes use named colors so have to convert into hex by appending '#'.
-" See: https://vi.stackexchange.com/a/20757/8084
-" See: https://stackoverflow.com/a/27870856/4970632
+" Get statusline color defaults from current colorsheme
+" Note: This is needed for GUI vim color schemes since they do not use cterm codes. See:
+" https://vi.stackexchange.com/a/20757/8084 https://stackoverflow.com/a/27870856/4970632
 function! s:default_color(code, ...) abort
-  let hex = synIDattr(hlID('Normal'), a:code . '#')
+  let hex = synIDattr(hlID('Normal'), a:code . '#')  " request conversion to hex
   if empty(hex) || hex[0] !=# '#' | return | endif  " unexpected output
   let shade = a:0 ? a:1 ? 0.3 : 0.0 : 0.0  " shade toward neutral gray
   let color = '#'  " default hex color
@@ -43,11 +55,9 @@ function! s:default_color(code, ...) abort
   return color
 endfunction
 
-" Autocommands for highlighting
+" Get statusline color dependent on various settings
 " Note: Redraw required for CmdlineEnter,CmdlinLeave slow for large files and can
 " trigger for maps, so leave alone. See: https://github.com/neovim/neovim/issues/7583
-" Note: For some reason statusline_color must always search b:statusline_filechanged
-" passing expand('<afile>') then using getbufvar colors statusline in wrong window.
 function! s:statusline_color(highlight) abort
   let name = has('gui_running') ? 'gui' : 'cterm'
   let flag = has('gui_running') ? '#be0119' : 'Red'  " copied from xkcd scarlet
@@ -73,16 +83,6 @@ function! s:statusline_color(highlight) abort
   exe 'highlight StatusLineNC ' . nofocus
   if mode() =~? '^c' | redraw | endif
 endfunction
-augroup statusline_color
-  au!
-  au BufEnter,TextChanged,InsertEnter * silent! checktime
-  au BufReadPost,BufWritePost,BufNewFile * call setbufvar(expand('<afile>'), 'statusline_filechanged', 0)
-  au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
-  au FileChangedShell * call s:statusline_color(mode() =~? '^[ir]')  " triggers after
-  au BufEnter,TextChanged * call s:statusline_color(mode() =~? '^[ir]')
-  au InsertEnter * call s:statusline_color(1)
-  au InsertLeave * call s:statusline_color(0)
-augroup END
 
 " Get path relative to working directory using successive '..' directives
 " See: https://stackoverflow.com/a/26650027/4970632
