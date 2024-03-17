@@ -39,7 +39,7 @@ let s:slash_string = !exists('+shellslash') ? '/' : &shellslash ? '/' : '\'
 let s:slash_regex = escape(s:slash_string, '\')
 
 " Get statusline color defaults from current colorsheme
-" Note: This is needed for GUI vim color schemes since they do not use cterm codes. See:
+" Note: This is needed for GUI vim color schemes since they do not use cterm codes. See
 " https://vi.stackexchange.com/a/20757/8084 https://stackoverflow.com/a/27870856/4970632
 function! s:default_color(code, ...) abort
   let hex = synIDattr(hlID('Normal'), a:code . '#')  " request conversion to hex
@@ -50,6 +50,7 @@ function! s:default_color(code, ...) abort
     " vint: -ProhibitUsingUndeclaredVariable
     let value = str2nr(hex[idx:idx + 1], 16)
     let value = value - shade * (value - 128)
+    let value = min(max([0, value]), 255)
     let color .= printf('%02x', float2nr(value))
   endfor
   return color
