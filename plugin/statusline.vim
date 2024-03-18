@@ -44,7 +44,7 @@ let s:slash_regex = escape(s:slash_string, '\')
 function! s:default_color(code, ...) abort
   let hex = synIDattr(hlID('Normal'), a:code . '#')  " request conversion to hex
   if empty(hex) || hex[0] !=# '#' | return hex | endif  " unexpected output
-  let shade = a:0 && a:1 ? 0.3 : 0.0  " shade toward neutral gray
+  let shade = a:0 && a:1 ? type(a:1) ? a:1 : 0.3 : 0.0  " shade toward neutral gray
   let color = '#'  " default hex color
   for idx in range(1, 5, 2)
     " vint: -ProhibitUsingUndeclaredVariable
@@ -61,6 +61,7 @@ endfunction
 function! s:statusline_color(highlight) abort
   let name = has('gui_running') ? 'gui' : 'cterm'
   let flag = has('gui_running') ? '#be0119' : 'Red'  " copied from xkcd scarlet
+  let gray = has('gui_running') ? s:default_color('bg', 1.0) : 'Gray'
   let black = has('gui_running') ? s:default_color('bg', 1) : 'Black'
   let white = has('gui_running') ? s:default_color('fg', 0) : 'White'
   let none = has('gui_running') ? 'background' : 'None'  " see :help guibg
@@ -81,6 +82,9 @@ function! s:statusline_color(highlight) abort
   let nofocus = name . 'bg=' . none . ' ' . name . 'fg=' . black . ' ' . name . '=None'
   exe 'highlight StatusLine ' . focus
   exe 'highlight StatusLineNC ' . nofocus
+  let g:statusline_gray = gray
+  let g:statusline_black = black
+  let g:statusline_white = white
   if mode() =~? '^c' | redraw | endif
 endfunction
 
