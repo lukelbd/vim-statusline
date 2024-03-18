@@ -44,13 +44,12 @@ let s:slash_regex = escape(s:slash_string, '\')
 function! s:default_color(code, ...) abort
   let hex = synIDattr(hlID('Normal'), a:code . '#')  " request conversion to hex
   if empty(hex) || hex[0] !=# '#' | return | endif  " unexpected output
-  let shade = a:0 ? a:1 ? 0.3 : 0.0 : 0.0  " shade toward neutral gray
+  let shade = a:0 && a:1 ? 0.3 : 0.0  " shade toward neutral gray
   let color = '#'  " default hex color
   for idx in range(1, 5, 2)
     " vint: -ProhibitUsingUndeclaredVariable
     let value = str2nr(hex[idx:idx + 1], 16)
     let value = value - shade * (value - 128)
-    let value = min(max([0, value]), 255)
     let color .= printf('%02x', float2nr(value))
   endfor
   return color
