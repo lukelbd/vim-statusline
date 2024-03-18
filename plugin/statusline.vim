@@ -44,7 +44,7 @@ let s:slash_regex = escape(s:slash_string, '\')
 function! s:default_color(code, ...) abort
   let hex = synIDattr(hlID('Normal'), a:code . '#')  " request conversion to hex
   if empty(hex) || hex[0] !=# '#' | return hex | endif  " unexpected output
-  let shade = a:0 && a:1 ? type(a:1) ? a:1 : 0.3 : 0.0  " shade toward neutral gray
+  let shade = a:0 && a:1 > 0 ? type(a:1) ? a:1 : 0.3 : 0.0  " shade toward neutral gray
   let color = '#'  " default hex color
   for idx in range(1, 5, 2)
     " vint: -ProhibitUsingUndeclaredVariable
