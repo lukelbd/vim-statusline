@@ -261,7 +261,7 @@ function! s:loc_info() abort
   if !empty(info)
     let info = '[' . info . '] '
   endif
-  let absolute = col('.') . ':' . line('.') . '/' . line('$')
+  let absolute = line('.') . '/' . line('$') . ':' . col('.')
   let relative = (100 * line('.') / line('$')) . '%'
   return info . '[' . absolute . '] (' . relative . ')'
 endfunction
