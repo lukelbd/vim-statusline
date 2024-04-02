@@ -33,8 +33,8 @@ let s:current_mode = {
 \ }
 let s:maxlen_abs = 40  " maximum length after truncation
 let s:maxlen_raw = 20  " maximum length without truncation
-let s:maxlen_part = 7  " truncate path parts (directories and filename)
-let s:maxlen_piece = 5  " truncate path pieces (seperated by dot/hypen/underscore)
+let s:maxlen_part = 15  " truncate path parts (directories and filename)
+let s:maxlen_piece = 10  " truncate path pieces (seperated by dot/hypen/underscore)
 let s:slash_string = !exists('+shellslash') ? '/' : &shellslash ? '/' : '\'
 let s:slash_regex = escape(s:slash_string, '\')
 
@@ -93,14 +93,20 @@ endfunction
 " Get path relative to working directory using successive '..' directives
 " See: https://stackoverflow.com/a/26650027/4970632
 " See: https://docs.python.org/3/library/os.path.html#os.path.relpath
-function! s:relative_path(arg) abort
+function! s:relative_path(arg, ...) abort
   let head = '^fugitive:' . repeat(s:slash_regex, 2)
   let init = substitute(a:arg, head, '', '')
   let blob = '\.git' . repeat(s:slash_regex, 2) . '\x\{33}\(\x\{7}\)'
   let init = substitute(init, blob, '\1', '')
   let path = fnamemodify(init, ':p')
   let dots = ''  " header '..' dots
-  let head = getcwd()  " initial common header
+  let head = a:0 && type(a:1) ? a:1 : getcwd()
+  if a:0 && !empty(a:1) && !type(a:1) && exists('*FugitiveGitDir')  " repo/foo/bar/baz
+    let head = fnamemodify(FugitiveGitDir(), ':h')
+    let icwd = getcwd()[:len(head) - 1] ==# head
+    let head = icwd ? '' : fnamemodify(head, ':h')
+  endif
+  let head = empty(head) ? getcwd() : head
   let regex = '^' . escape(head, '[]\.*$~')
   while path !~# regex
     let ihead = fnamemodify(head, ':h')
@@ -124,7 +130,7 @@ endfunction
 " See: https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
 function! s:path_name() abort
   let rawname = '' " used for symlink check
-  let bufname = s:relative_path(@%)
+  let bufname = s:relative_path(expand('%'), 1)
   let parts = split(bufname, '\ze' . s:slash_regex)
   for idx in range(len(parts))
     let part = parts[idx]
