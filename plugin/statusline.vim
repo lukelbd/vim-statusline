@@ -94,28 +94,34 @@ endfunction
 " See: https://stackoverflow.com/a/26650027/4970632
 " See: https://docs.python.org/3/library/os.path.html#os.path.relpath
 function! s:relative_path(arg, ...) abort
-  let head = '^fugitive:' . repeat(s:slash_regex, 2)
-  let init = substitute(a:arg, head, '', '')
   let blob = '\.git' . repeat(s:slash_regex, 2) . '\x\{33}\(\x\{7}\)'
-  let init = substitute(init, blob, '\1', '')
-  let path = fnamemodify(init, ':p')
+  let disk = '^fugitive:' . repeat(s:slash_regex, 2)
+  let name = substitute(a:arg, disk, '', '')
+  let name = substitute(name, blob, '\1', '')
+  let path = fnamemodify(name, ':p')
   let dots = ''  " header '..' dots
   let head = a:0 && type(a:1) ? a:1 : getcwd()
+  let icloud = expand('~/Library/Mobile Documents/com~apple~CloudDocs')
   if a:0 && !empty(a:1) && !type(a:1) && exists('*FugitiveGitDir')  " repo/foo/bar/baz
-    let head = fnamemodify(FugitiveGitDir(), ':h')
-    let icwd = getcwd()[:len(head) - 1] ==# head
-    let head = icwd ? '' : fnamemodify(head, ':h')
+    let git = FugitiveGitDir(bufnr(path))   " buffer git repo
+    let base = empty(git) ? '' : fnamemodify(git, ':h')  " remove '.git' heading
+    let root = empty(git) ? '' : fnamemodify(base, ':h')  " root with trailing slash
+    let icwd = strpart(getcwd(), 0, len(base)) ==# base
+    let head = empty(git) || icwd ? '' : root
   endif
   let head = empty(head) ? getcwd() : head
   let regex = '^' . escape(head, '[]\.*$~')
-  while path !~# regex
-    let ihead = fnamemodify(head, ':h')
-    if ihead ==# head | return init | endif  " fallback to original
-    let head = ihead  " alternative common
-    let dots = '..' . (empty(dots) ? '' : s:slash_string . dots)
-    let regex = '^' . escape(head, '[]\.*$~')
-  endwhile
-  let tail = substitute(path, regex, '', '')
+  if strpart(path, 0, len(icloud)) ==# icloud
+    let tail = 'iCloud' . strpart(path, len(icloud))
+  else  " ascend to shared directory
+    while strpart(path, 0, len(head)) !=# head
+      let ihead = fnamemodify(head, ':h')
+      if ihead ==# head | return name | endif  " fallback to original
+      let head = ihead  " alternative common
+      let dots = '..' . (empty(dots) ? '' : s:slash_string . dots)
+    endwhile
+    let tail = strpart(path, len(head))
+  endif
   if empty(tail)
     return path
   elseif !empty(dots)
