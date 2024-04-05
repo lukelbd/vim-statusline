@@ -99,16 +99,16 @@ function! s:relative_path(arg, ...) abort
   let name = substitute(a:arg, disk, '', '')
   let name = substitute(name, blob, '\1', '')
   let path = fnamemodify(name, ':p')
-  let dots = ''  " header '..' dots
   let head = a:0 && type(a:1) ? a:1 : getcwd()
   let icloud = expand('~/Library/Mobile Documents/com~apple~CloudDocs')
-  if a:0 && !empty(a:1) && !type(a:1) && exists('*FugitiveGitDir')  " repo/foo/bar/baz
-    let git = FugitiveGitDir(bufnr(path))   " buffer git repo
+  if a:0 && !empty(a:1) && !type(a:1) && exists('*FugitiveExtractGitDir')  " repo/foo/bar/baz
+    let git = FugitiveExtractGitDir(path)   " buffer git repo
     let base = empty(git) ? '' : fnamemodify(git, ':h')  " remove '.git' heading
     let root = empty(git) ? '' : fnamemodify(base, ':h')  " root with trailing slash
     let icwd = strpart(getcwd(), 0, len(base)) ==# base
     let head = empty(git) || icwd ? '' : root
   endif
+  let dots = ''  " header '..' dots
   let head = empty(head) ? getcwd() : head
   let regex = '^' . escape(head, '[]\.*$~')
   if strpart(path, 0, len(icloud)) ==# icloud
