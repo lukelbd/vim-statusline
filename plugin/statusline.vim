@@ -104,9 +104,9 @@ function! s:relative_path(arg, ...) abort
   if a:0 && !empty(a:1) && !type(a:1) && exists('*FugitiveExtractGitDir')  " repo/foo/bar/baz
     let git = FugitiveExtractGitDir(path)   " buffer git repo
     let base = empty(git) ? '' : fnamemodify(git, ':h')  " remove '.git' heading
-    let root = empty(git) ? '' : fnamemodify(base, ':h')  " root with trailing slash
+    let root = empty(git) ? '' : fnamemodify(base, ':h')  " name of root folder
     let icwd = strpart(getcwd(), 0, len(base)) ==# base
-    let head = empty(git) || icwd ? '' : root
+    let head = empty(git) || icwd ? '' : fnamemodify(root, ':p')  " trailing slash
   endif
   let dots = ''  " header '..' dots
   let head = empty(head) ? getcwd() : head
