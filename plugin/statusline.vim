@@ -116,8 +116,8 @@ function! s:relative_path(arg, ...) abort
   else  " ascend to shared directory
     while strpart(path, 0, len(head)) !=# head
       let ihead = fnamemodify(head, ':h')
-      if ihead ==# head | return name | endif  " fallback to original
-      let head = ihead  " alternative common
+      if ihead ==# head | return name | endif
+      let head = ihead  " common directory candidate
       let dots = '..' . (empty(dots) ? '' : s:slash_string . dots)
     endwhile
     let tail = strpart(path, len(head))
