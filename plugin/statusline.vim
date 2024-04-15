@@ -93,6 +93,16 @@ endfunction
 " Get path relative to working directory using successive '..' directives
 " See: https://stackoverflow.com/a/26650027/4970632
 " See: https://docs.python.org/3/library/os.path.html#os.path.relpath
+function! s:path_base(path) abort
+  let base = ''  " see also tags.vim
+  let func = get(g:, 'gutentags_project_root_finder', '')
+  if !empty(func) && exists('*' . func)
+    let base = call(func, [a:path])
+  elseif exists('*FugitiveExtractGitDir')
+    let base = FugitiveExtractGitDir(a:path)
+    let base = empty(base) ? base : fnamemodify(base, ':h')
+  endif | return base
+endfunction
 function! s:relative_path(arg, ...) abort
   let blob = '\.git' . repeat(s:slash_regex, 2) . '\x\{33}\(\x\{7}\)'
   let disk = '^fugitive:' . repeat(s:slash_regex, 2)
@@ -101,12 +111,11 @@ function! s:relative_path(arg, ...) abort
   let path = fnamemodify(name, ':p')
   let head = a:0 && type(a:1) ? a:1 : getcwd()
   let icloud = expand('~/Library/Mobile Documents/com~apple~CloudDocs')
-  if a:0 && !empty(a:1) && !type(a:1) && exists('*FugitiveExtractGitDir')  " repo/foo/bar/baz
-    let git = FugitiveExtractGitDir(path)   " buffer git repo
-    let base = empty(git) ? '' : fnamemodify(git, ':h')  " remove '.git' heading
-    let root = empty(git) ? '' : fnamemodify(base, ':h')  " name of root folder
-    let icwd = strpart(getcwd(), 0, len(base)) ==# base
-    let head = empty(git) || icwd ? '' : fnamemodify(root, ':p')  " trailing slash
+  if a:0 && !empty(a:1) && !type(a:1)  " repo/foo/bar/baz
+    let base = s:path_base(path)
+    let root = fnamemodify(base, ':h')  " name of root folder
+    let icwd = !empty(base) && strpart(getcwd(), 0, len(base)) ==# base
+    let head = empty(base) || icwd ? '' : fnamemodify(root, ':p')  " trailing slash
   endif
   let dots = ''  " header '..' dots
   let head = empty(head) ? getcwd() : head
