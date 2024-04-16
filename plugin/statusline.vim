@@ -121,7 +121,7 @@ function! s:relative_path(arg, ...) abort
   let head = empty(head) ? getcwd() : head
   let regex = '^' . escape(head, '[]\.*$~')
   if strpart(path, 0, len(icloud)) ==# icloud
-    let tail = 'iCloud' . strpart(path, len(icloud))
+    let tail = 'icloud' . strpart(path, len(icloud))
   else  " ascend to shared directory
     while strpart(path, 0, len(head)) !=# head
       let ihead = fnamemodify(head, ':h')
