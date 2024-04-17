@@ -113,10 +113,10 @@ function! s:relative_path(arg, ...) abort
   let icloud = expand('~/Library/Mobile Documents/com~apple~CloudDocs')
   if a:0 && !empty(a:1) && !type(a:1)  " repo/foo/bar/baz
     let base = s:path_base(path)
-    let root = fnamemodify(base, ':h')  " name of root folder
+    let head = fnamemodify(base, ':h')  " name of root folder
     let icwd = !empty(base) && strpart(getcwd(), 0, len(base)) ==# base
     let ipath = !empty(base) && strpart(path, 0, len(base)) ==# base
-    let head = icwd || !ipath ? '' : fnamemodify(root, ':p')  " trailing slash
+    let head = icwd || !ipath ? '' : fnamemodify(head, ':p')  " trailing slash
   endif
   let dots = ''  " header '..' dots
   let head = empty(head) ? getcwd() : head
