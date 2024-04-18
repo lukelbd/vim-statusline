@@ -94,11 +94,9 @@ endfunction
 " See: https://stackoverflow.com/a/26650027/4970632
 " See: https://docs.python.org/3/library/os.path.html#os.path.relpath
 function! s:path_base(path) abort
-  let base = ''  " see also tags.vim
-  let func = get(g:, 'gutentags_project_root_finder', '')
-  if !empty(func) && exists('*' . func)
-    let base = call(func, [a:path])
-  elseif exists('*FugitiveExtractGitDir')
+  let bnr = bufnr(a:path)
+  let base = getbufvar(bnr, 'gutentags_root', '')  " see also tags.vim
+  if empty(base) && exists('*FugitiveExtractGitDir')
     let base = FugitiveExtractGitDir(a:path)
     let base = empty(base) ? base : fnamemodify(base, ':h')
   endif | return base
