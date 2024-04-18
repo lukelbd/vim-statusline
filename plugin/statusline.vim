@@ -94,13 +94,16 @@ endfunction
 " See: https://stackoverflow.com/a/26650027/4970632
 " See: https://docs.python.org/3/library/os.path.html#os.path.relpath
 function! s:path_base(path) abort
-  let base = getbufvar(bufnr(a:path), 'gutentags_root', '')  " see also tags.vim
-  let func = get(g:, 'gutentags_project_root_finder', '')
-  if !empty(base) | return base | endif
-  if !empty(func) | return call(func, [a:path]) | endif
-  if !exists('*FugitiveExtractGitDir') | return '' | endif
-  let base = FugitiveExtractGitDir(a:path)
-  return empty(base) ? base : fnamemodify(base, ':h')
+  let bnr = bufnr(a:path)
+  let base = getbufvar(bnr, 'gutentags_root', '')  " see also tags.vim
+  if !empty(base)  " existing gutentags path
+    return base
+  elseif exists('*gutentags#get_project_root')  " gutentags algorithm
+    return gutentags#get_project_root(a:path)
+  else  " fallback algorithm with vim-fugitive
+    let base = exists('*FugitiveExtractGitDir') ? FugitiveExtractGitDir(a:path) : ''
+    return empty(base) ? base : fnamemodify(base, ':h')
+  endif
 endfunction
 function! s:relative_path(arg, ...) abort
   let blob = '\.git' . repeat(s:slash_regex, 2) . '\x\{33}\(\x\{7}\)'
