@@ -112,6 +112,7 @@ function! s:relative_path(arg, ...) abort
   let name = substitute(name, blob, '\1', '')
   let path = fnamemodify(name, ':p')
   let head = a:0 && type(a:1) ? a:1 : getcwd()
+  let head = substitute(head, '/*$', '', '')
   let icloud = expand('~/Library/Mobile Documents/com~apple~CloudDocs')
   if a:0 && !empty(a:1) && !type(a:1)  " repo/foo/bar/baz
     let base = s:path_base(path)
