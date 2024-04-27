@@ -4,16 +4,23 @@
 " A minimal, informative, black-and-white statusline that helps keep focus
 " on the content in each window and integrates with other useful plugins.
 "------------------------------------------------------------------------------
-" Global settings
+" Global settings and autocommands
+" Note: For some reason statusline_color must always search b:statusline_filechanged
+" passing expand('<afile>') then using getbufvar colors statusline in wrong window.
 scriptencoding utf-8  " required for s:mode_names
 set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
 set statusline=%{StatusLeft()}\ %=%{StatusRight()}
-
-" Autocommands for highlighting
-" Note: For some reason statusline_color must always search b:statusline_filechanged
-" passing expand('<afile>') then using getbufvar colors statusline in wrong window.
+let s:slash_str = !has('win32') && !has('win64') || exists('+shellslash') && &shellslash ? '/' : '\'
+let s:maxlen_abs = 40  " maximum length after truncation
+let s:maxlen_raw = 20  " maximum length without truncation
+let s:maxlen_part = 15  " truncate path parts (directories and filename)
+let s:maxlen_piece = 10  " truncate path pieces (seperated by dot/hypen/underscore)
+let s:modal_str = {
+  \ 'n':  'N', 'no': 'O', 'i':  'I', 'R' : 'R', 'Rv': 'RV', '!' : '!', 't':  'T',
+  \ 'v':  'V', 'V' : 'VL', '': 'VB', 's':  'S', 'S' : 'SL', '': 'SB',
+  \ 'c':  'C', 'ce': 'CE', 'cv': 'CV', 'r' : 'CP', 'r?': 'CI', 'rm': 'M'}
 augroup statusline_color
   au!
   au BufEnter,TextChanged,InsertEnter * silent! checktime
@@ -25,20 +32,33 @@ augroup statusline_color
   au InsertLeave * call s:statusline_color(0)
 augroup END
 
-" Configuration variables
-let s:current_mode = {
-  \ 'n':  'N', 'no': 'O', 'i':  'I', 'R' : 'R', 'Rv': 'RV',
-  \ 'v':  'V', 'V' : 'VL', '': 'VB', 's':  'S', 'S' : 'SL', '': 'SB',
-  \ 'c':  'C', 'ce': 'CE', 'cv': 'CV', 'r' : 'CP', 'r?': 'CI', 'rm': 'M', '!' : '!', 't':  'T',
-\ }
-let s:maxlen_abs = 40  " maximum length after truncation
-let s:maxlen_raw = 20  " maximum length without truncation
-let s:maxlen_part = 15  " truncate path parts (directories and filename)
-let s:maxlen_piece = 10  " truncate path pieces (seperated by dot/hypen/underscore)
-let s:slash_string = !exists('+shellslash') ? '/' : &shellslash ? '/' : '\'
-let s:slash_regex = escape(s:slash_string, '\')
+" Public functions used to fill the statusline.
+" Note: Add public relative path function for dotfiles repo
+function! RelativePath(...) abort
+  return call('s:relative_path', a:000)
+endfunction
+function! StatusRight() abort
+  return s:info_cursor()
+endfunction
+function! StatusLeft() abort
+  let line = ''
+  let funcs = ['s:info_path', 's:info_git', 's:info_file', 's:info_vim']
+  let maxsize = winwidth(0) - strwidth(StatusRight()) - 1
+  for ifunc in funcs  " note cannot use function() handles for locals
+    let part = call(ifunc, [])
+    let size = strwidth(part)
+    let trunc = strcharpart(part, 0, 1) !=# '·'
+    if !trunc && empty(line) && size > maxsize && maxsize > 0
+      let part = '·' . strcharpart(part, size - maxsize + 1)
+    endif
+    if strwidth(line . part) <= maxsize
+      let line .= part
+    endif
+  endfor
+  return line
+endfunction
 
-" Get statusline color defaults from current colorsheme
+" Generate default statusline colors using colorsheme
 " Note: This is needed for GUI vim color schemes since they do not use cterm codes. See
 " https://vi.stackexchange.com/a/20757/8084 https://stackoverflow.com/a/27870856/4970632
 function! s:default_color(code, ...) abort
@@ -57,7 +77,7 @@ function! s:default_color(code, ...) abort
   return color
 endfunction
 
-" Get statusline color dependent on various settings
+" Highlight statusline dependent on various settings
 " Note: Redraw required for CmdlineEnter,CmdlinLeave slow for large files and can
 " trigger for maps, so leave alone. See: https://github.com/neovim/neovim/issues/7583
 function! s:statusline_color(highlight) abort
@@ -90,9 +110,9 @@ function! s:statusline_color(highlight) abort
   if mode() =~? '^c' | redraw | endif
 endfunction
 
-" Get path base using gutentags, fugitive, or $HOME symlinks
+" Return path base using gutentags or fugitive
 " Note: This shows paths relative to root and with truncated git hashes
-function! s:get_link_base(path, ...) abort
+function! s:find_base(path, ...) abort
   let cwd = getcwd()
   let glob = a:0 ? fnamemodify(a:1, ':p') : expand('~')
   let pairs = []  " matching links
@@ -116,7 +136,10 @@ function! s:get_link_base(path, ...) abort
   endif
   return [base, head]
 endfunction
-function! s:get_root_base(path) abort
+
+" Return path base using $HOME symlinks
+" See: https://github.com/vim/vim/issues/4942
+function! s:root_base(path) abort
   let bnr = bufnr(a:path)
   let root = getbufvar(bnr, 'gutentags_root', '')  " see also tags.vim
   if empty(root) && exists('*gutentags#get_project_root')
@@ -127,38 +150,34 @@ function! s:get_root_base(path) abort
     let root = empty(root) ? '' : fnamemodify(root, ':h')  " .git head
   endif
   if !empty(root)  " fallback to actual
-    let root = s:parse_path(root)  " ensure no trailing slash
+    let root = substitute(root, '[/\\]$', '', '')  " ensure no trailing slash
     let path_in_cwd = strpart(getcwd(), 0, len(root)) ==# root
     let path_in_root = strpart(a:path, 0, len(root)) ==# root
     let root = path_in_root && !path_in_cwd ? root : ''
   endif
   if empty(root)  " fallback to default method
-    return s:get_link_base(a:path)
+    return s:find_base(a:path)
   else  " use this root with inferred head
     return [fnamemodify(root, ':h'), '']
   endif
 endfunction
 
-" Get path relative to root or relative to working directory using '..'
+" Return path relative to root or relative to working directory using '..'
 " See: https://stackoverflow.com/a/26650027/4970632
-" See: https://docs.python.org/3/library/os.path.html#os.path.relpath
-function! s:parse_path(path) abort
-  let disk = '^fugitive:' . repeat(s:slash_regex, 2)
-  let blob = '\.git' . repeat(s:slash_regex, 2) . '\x\{33}\(\x\{7}\)'
+function! s:relative_path(path, ...) abort
+  let disk = '^fugitive:[/\\]\{2}'
+  let blob = '\.git[/\\]\{2}\x\{33}\(\x\{7}\)'
   let path = substitute(a:path, disk, '', '')
   let path = substitute(path, blob, '\1', '')
   let path = fnamemodify(expand(path), ':p')
-  return substitute(path, s:slash_regex . '$', '', '')
-endfunction
-function! s:relative_path(path, ...) abort
-  let path = s:parse_path(a:path)
+  let path = substitute(path, '[/\\]$', '', '')
   let [base, head, tail] = ['', '', '']
   if a:0 && type(a:1)  " relative to arbitrary directory
-    let base = s:parse_path(a:1)
+    let base = substitute(a:1, '[/\\]$', '', '')
   elseif a:0 && !type(a:1) && a:1  " e.g. repo/foo/bar/baz for git repository
-    let [base, head] = s:get_root_base(path)
+    let [base, head] = s:root_base(path)
   else  " e.g. ~/icloud for icloud files or getcwd() otherwise
-    let [base, head] = s:get_link_base(path)
+    let [base, head] = s:find_base(path)
   endif
   while strpart(path, 0, len(base)) !=# base  " false if link was fond
     let ibase = fnamemodify(base, ':h')
@@ -166,34 +185,33 @@ function! s:relative_path(path, ...) abort
       let [base, head] = ['', ''] | break
     endif
     let base = ibase  " ascend to shared directory
-    let head .= (empty(head) ? '' : s:slash_string) . '..'
+    let head .= (empty(head) ? '' : s:slash_str) . '..'
   endwhile
   if empty(base)  " fallback e.g. for base itself
     return fnamemodify(path, ':~:.')
   endif
   let tail = strpart(path, len(base))  " then remove slash
-  let tail = substitute(tail, '^' . s:slash_regex, '', '')
+  let tail = substitute(tail, '^[/\\]', '', '')
   if empty(head)
     return tail
   elseif base ==# expand('~')
-    return '~' . s:slash_string . tail
+    return '~' . s:slash_str . tail
   else  " shared head
-    return head . s:slash_string . tail
+    return head . s:slash_str . tail
   endif
 endfunction
 
-" Shorten a given filename by truncating both path segments and leading
-" directory name. Also indicate symlink redirects when relevant.
+" Current path name relative to base with truncated segments
 " See: https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
-function! s:path_name() abort
-  let rawname = '' " used for symlink check
-  let bufname = s:relative_path(expand('%'), 1)
-  let parts = split(bufname, '\ze' . s:slash_regex)
+function! s:info_path() abort
+  let raw = '' " used for symlink check
+  let path = s:relative_path(expand('%'), 1)
+  let parts = split(path, '\ze\' . s:slash_str)
   for idx in range(len(parts))
     let part = parts[idx]
     let maxlen = s:maxlen_part + (idx > 0)
-    let rawname .= part  " unfiltered parts
-    if strwidth(part) > maxlen && strwidth(bufname) > s:maxlen_raw
+    let raw .= part  " unfiltered parts
+    if strwidth(part) > maxlen && strwidth(path) > s:maxlen_raw
       let chars = idx == len(parts) - 1 ? '._-' : '_-'
       let pieces = split(part, '\ze[' . chars . ']')  " pieces to truncate
       if len(pieces) == 1
@@ -213,9 +231,9 @@ function! s:path_name() abort
         let parts[idx] = part
       endif
     endif
-    if getftype(rawname) ==# 'link'  " indicator if this part of filename is symlink
-      if s:slash_string ==# part[0]
-        let part = s:slash_string . '↪ ' . part[1:]
+    if getftype(raw) ==# 'link'  " symlink redirect
+      if s:slash_str ==# part[0]
+        let part = s:slash_str . '↪ ' . part[1:]
       else
         let part = '↪ ' . part
       endif
@@ -227,12 +245,34 @@ function! s:path_name() abort
   if width > s:maxlen_abs  " including multi-byte characters e.g. symlink
     let path = strcharpart(path, width - s:maxlen_abs)
     let path = '·' . path
-  endif
-  return path
+  endif | return path
 endfunction
 
-" Current git branch using fugitive
-function! s:git_info() abort
+" Return column number, current line number, total line number, and percentage
+" Include 'current' tag kind and name from lukelbd/vim-tags or preservim/tagbar
+function! s:info_cursor() abort
+  let maxlen = 20  " can be changed
+  if exists('*tags#current_tag')
+    let info = tags#current_tag()
+  elseif exists('*tagbar#currenttag')
+    let info = tagbar#currenttag()
+  else
+    let info = ''
+  endif
+  if strwidth(info) > maxlen
+    let info = strcharpart(info, 0, maxlen - 1) . '·'
+  endif
+  if !empty(info)
+    let info = '[' . info . '] '
+  endif
+  let absolute = line('.') . '/' . line('$') . ':' . col('.')
+  let relative = (100 * line('.') / line('$')) . '%'
+  return info . '[' . absolute . '] (' . relative . ')'
+endfunction
+
+" Return git branch and unstaged modification hunks
+" Note: This was adapated from tpope/vim-fugitive and airblade/vim-gitgutter
+function! s:info_git() abort
   if exists('*FugitiveHead')
     let info = FugitiveHead()  " possibly empty
   else
@@ -253,8 +293,9 @@ function! s:git_info() abort
   endif
 endfunction
 
-" Current file type and size in human-readable units
-function! s:file_info() abort
+" Return file type and size in human-readable units
+" Note: Returns zero bytes for buffers not associated with files
+function! s:info_file() abort
   if empty(&l:filetype)
     let info = 'unknown:'
   else
@@ -277,17 +318,16 @@ function! s:file_info() abort
   return ' [' . info . ']'
 endfunction
 
-" Current mode including indicator if in paste mode
-" Note: This was adapted from ObsessionStatus. Previously we tested existence
-" of ObsessionStatus below but that caused race condition issue.
-function! s:vim_info() abort
+" Return mode including paste mode indicator and session status
+" Previously tested existence of ObsessionStatus but this caused race condition
+function! s:info_vim() abort
   let code = &l:spelllang
   if &l:paste  " 'p' for paste
     let info = 'P'
   elseif &l:iminsert  " 'l' for langmap
     let info = 'L'
   else  " default mode
-    let info = get(s:current_mode, mode(), '?')
+    let info = get(s:mode_name, mode(), '?')
   endif
   if &l:foldenable && &l:foldlevel < 10
     let info .= ':Z' . &l:foldlevel
@@ -305,52 +345,4 @@ function! s:vim_info() abort
     let flag = ' [S]'
   endif
   return  toupper(' [' . info . ']' . flag)
-endfunction
-
-" Current column number, current line number, total line number, and
-" percentage. Also prepend tag kind and name using lukelbd/vim-tags
-function! s:loc_info() abort
-  let maxlen = 20  " can be changed
-  if exists('*tags#current_tag')
-    let info = tags#current_tag()
-  elseif exists('*tagbar#currenttag')
-    let info = tagbar#currenttag()
-  else
-    let info = ''
-  endif
-  if strwidth(info) > maxlen
-    let info = strcharpart(info, 0, maxlen - 1) . '·'
-  endif
-  if !empty(info)
-    let info = '[' . info . '] '
-  endif
-  let absolute = line('.') . '/' . line('$') . ':' . col('.')
-  let relative = (100 * line('.') / line('$')) . '%'
-  return info . '[' . absolute . '] (' . relative . ')'
-endfunction
-
-" Public functions used to fill the statusline. Also make the
-" path function public (used across personal dotfiles repo).
-function! RelativePath(...) abort
-  return call('s:relative_path', a:000)
-endfunction
-function! StatusRight() abort
-  return s:loc_info()
-endfunction
-function! StatusLeft() abort
-  let names = ['s:path_name', 's:git_info', 's:file_info', 's:vim_info']
-  let line = ''
-  let maxsize = winwidth(0) - strwidth(StatusRight()) - 1
-  for name in names  " note cannot use function() handles for locals
-    let part = call(name, [])
-    let size = strwidth(part)
-    let trunc = strcharpart(part, 0, 1) !=# '·'
-    if !trunc && empty(line) && size > maxsize && maxsize > 0
-      let part = '·' . strcharpart(part, size - maxsize + 1)
-    endif
-    if strwidth(line . part) <= maxsize
-      let line .= part
-    endif
-  endfor
-  return line
 endfunction
