@@ -192,14 +192,10 @@ function! s:relative_path(path, ...) abort
     return fnamemodify(path, ':~:.')
   endif
   let tail = strpart(path, len(base))  " then remove slash
-  let tail = substitute(tail, '^[/\\]', '', '')
-  if empty(head)
-    return tail
-  elseif base ==# expand('~')
-    return '~' . s:slash_str . tail
-  else  " shared head
-    return head . s:slash_str . tail
-  endif
+  let tail = substitute(tail, '\(^[/\\]\|[/\\]$\)', '', '')
+  let head = !empty(head) ? base ==# expand('~') ? '~' : head : ''
+  let head .= !empty(head) && !empty(tail) ? s:slash_str : ''
+  return head . tail
 endfunction
 
 " Current path name relative to base with truncated segments
