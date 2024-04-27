@@ -90,57 +90,95 @@ function! s:statusline_color(highlight) abort
   if mode() =~? '^c' | redraw | endif
 endfunction
 
-" Get path relative to working directory using successive '..' directives
-" See: https://stackoverflow.com/a/26650027/4970632
-" See: https://docs.python.org/3/library/os.path.html#os.path.relpath
-function! s:path_base(path) abort
+" Get path base using gutentags, fugitive, or $HOME symlinks
+" Note: This shows paths relative to root and with truncated git hashes
+function! s:get_link_base(path, ...) abort
+  let cwd = getcwd()
+  let glob = a:0 ? fnamemodify(a:1, ':p') : expand('~')
+  let pairs = []  " matching links
+  for head in globpath(glob, '*', 1, 1)
+    let base = resolve(head)  " resolve symlinks
+    if base ==# head | continue | endif  " not a symlink
+    let link_in_cwd = strpart(base, 0, len(cwd)) ==# cwd
+    let path_in_link = strpart(a:path, 0, len(base)) ==# base
+    if path_in_link && !link_in_cwd
+      call add(pairs, [base, head])
+    endif
+  endfor
+  let size = max(map(copy(pairs), 'len(v:val[0])'))
+  let idx = indexof(pairs, {_, val -> len(val[0]) == size})
+  if idx < 0  " point from working directory
+    let base = cwd
+    let head = ''
+  else  " point from relative-path symlink
+    let [base, head] = pairs[idx]
+    let head = s:relative_path(head, cwd)
+  endif
+  return [base, head]
+endfunction
+function! s:get_root_base(path) abort
   let bnr = bufnr(a:path)
-  let base = getbufvar(bnr, 'gutentags_root', '')  " see also tags.vim
-  if !empty(base)  " existing gutentags path
-    return base
-  elseif exists('*gutentags#get_project_root')  " gutentags algorithm
-    return gutentags#get_project_root(a:path)
-  else  " fallback algorithm with vim-fugitive
-    let base = exists('*FugitiveExtractGitDir') ? FugitiveExtractGitDir(a:path) : ''
-    return empty(base) ? base : fnamemodify(base, ':h')
+  let root = getbufvar(bnr, 'gutentags_root', '')  " see also tags.vim
+  if empty(root) && exists('*gutentags#get_project_root')
+    let root = gutentags#get_project_root(a:path)  " standard gutentags algorithm
+  endif
+  if empty(root) && exists('*FugitiveExtractGitDir')
+    let root = FugitiveExtractGitDir(a:path)  " fallback vim-fugitive algorithm
+    let root = empty(root) ? '' : fnamemodify(root, ':h')  " .git head
+  endif
+  if !empty(root)  " fallback to actual
+    let root = s:parse_path(root)  " ensure no trailing slash
+    let path_in_cwd = strpart(getcwd(), 0, len(root)) ==# root
+    let path_in_root = strpart(a:path, 0, len(root)) ==# root
+    let root = path_in_root && !path_in_cwd ? root : ''
+  endif
+  if empty(root)  " fallback to default method
+    return s:get_link_base(a:path)
+  else  " use this root with inferred head
+    return [fnamemodify(root, ':h'), '']
   endif
 endfunction
-function! s:relative_path(arg, ...) abort
-  let blob = '\.git' . repeat(s:slash_regex, 2) . '\x\{33}\(\x\{7}\)'
+
+" Get path relative to root or relative to working directory using '..'
+" See: https://stackoverflow.com/a/26650027/4970632
+" See: https://docs.python.org/3/library/os.path.html#os.path.relpath
+function! s:parse_path(path) abort
   let disk = '^fugitive:' . repeat(s:slash_regex, 2)
-  let name = substitute(a:arg, disk, '', '')
-  let name = substitute(name, blob, '\1', '')
-  let path = fnamemodify(name, ':p')
-  let head = a:0 && type(a:1) ? a:1 : getcwd()
-  let head = substitute(head, '/*$', '', '')
-  let icloud = expand('~/Library/Mobile Documents/com~apple~CloudDocs')
-  if a:0 && !empty(a:1) && !type(a:1)  " repo/foo/bar/baz
-    let base = s:path_base(path)
-    let head = fnamemodify(base, ':h')  " name of root folder
-    let icwd = !empty(base) && strpart(getcwd(), 0, len(base)) ==# base
-    let ipath = !empty(base) && strpart(path, 0, len(base)) ==# base
-    let head = icwd || !ipath ? '' : fnamemodify(head, ':p')  " trailing slash
+  let blob = '\.git' . repeat(s:slash_regex, 2) . '\x\{33}\(\x\{7}\)'
+  let path = substitute(a:path, disk, '', '')
+  let path = substitute(path, blob, '\1', '')
+  let path = fnamemodify(expand(path), ':p')
+  return substitute(path, s:slash_regex . '$', '', '')
+endfunction
+function! s:relative_path(path, ...) abort
+  let path = s:parse_path(a:path)
+  let [base, head, tail] = ['', '', '']
+  if a:0 && type(a:1)  " relative to arbitrary directory
+    let base = s:parse_path(a:1)
+  elseif a:0 && !type(a:1) && a:1  " e.g. repo/foo/bar/baz for git repository
+    let [base, head] = s:get_root_base(path)
+  else  " e.g. ~/icloud for icloud files or getcwd() otherwise
+    let [base, head] = s:get_link_base(path)
   endif
-  let dots = ''  " header '..' dots
-  let head = empty(head) ? getcwd() : head
-  let regex = '^' . escape(head, '[]\.*$~')
-  if strpart(path, 0, len(icloud)) ==# icloud
-    let tail = 'icloud' . strpart(path, len(icloud))
-  else  " ascend to shared directory
-    while strpart(path, 0, len(head)) !=# head
-      let ihead = fnamemodify(head, ':h')
-      if ihead ==# head | return name | endif
-      let head = ihead  " common directory candidate
-      let dots = '..' . (empty(dots) ? '' : s:slash_string . dots)
-    endwhile
-    let tail = strpart(path, len(head))
+  while strpart(path, 0, len(base)) !=# base  " false if link was fond
+    let ibase = fnamemodify(base, ':h')
+    if ibase ==# base  " root or disk
+      let [base, head] = ['', ''] | break
+    endif
+    let base = ibase  " ascend to shared directory
+    let head .= (empty(head) ? '' : s:slash_string) . '..'
+  endwhile
+  if empty(base)  " fallback e.g. for base itself
+    return fnamemodify(path, ':~:.')
   endif
-  if empty(tail)
-    return path
-  elseif !empty(dots)
-    return dots . tail
-  else  " remove header slash
-    return substitute(tail, '^' . s:slash_regex, '', '')
+  let tail = strpart(path, len(base))  " then remove slash
+  let tail = substitute(tail, '^' . s:slash_regex, '', '')
+  if empty(head)
+    return tail
+  elseif base ==# expand('~')
+    return '~' . s:slash_string . tail
+  else  " shared head
+    return head . s:slash_string . tail
   endif
 endfunction
 
