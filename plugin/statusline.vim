@@ -7,7 +7,7 @@
 " Global settings and autocommands
 " Note: For some reason statusline_update must always search b:statusline_filechanged
 " passing expand('<afile>') then using getbufvar colors statusline in wrong window.
-scriptencoding utf-8  " required for s:mode_names
+scriptencoding utf-8  " required for s:mode_strings
 set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
@@ -17,7 +17,7 @@ let s:maxlen_abs = 40  " maximum length after truncation
 let s:maxlen_raw = 20  " maximum length without truncation
 let s:maxlen_part = 15  " truncate path parts (directories and filename)
 let s:maxlen_piece = 10  " truncate path pieces (seperated by dot/hypen/underscore)
-let s:modal_str = {
+let s:mode_strings = {
   \ 'n':  'N', 'no': 'O', 'i':  'I', 'R' : 'R', 'Rv': 'RV', '!' : '!', 't':  'T',
   \ 'v':  'V', 'V' : 'VL', '': 'VB', 's':  'S', 'S' : 'SL', '': 'SB',
   \ 'c':  'C', 'ce': 'CE', 'cv': 'CV', 'r' : 'CP', 'r?': 'CI', 'rm': 'M'}
@@ -324,7 +324,7 @@ function! s:statusline_vim() abort
   elseif &l:iminsert  " 'l' for langmap
     let info = 'L'
   else  " default mode
-    let info = get(s:mode_name, mode(), '?')
+    let info = get(s:mode_strings, mode(), '?')
   endif
   if &l:foldenable && &l:foldlevel < 10
     let info .= ':Z' . &l:foldlevel
