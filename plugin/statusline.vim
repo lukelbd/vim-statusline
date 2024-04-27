@@ -192,7 +192,7 @@ function! s:relative_path(path, ...) abort
     return fnamemodify(path, ':~:.')
   endif
   let tail = strpart(path, len(base))  " then remove slash
-  let tail = substitute(tail, '\(^[/\\]*\|[/\\]*$\)', '', '')
+  let tail = substitute(tail, '\(^[/\\]*\|[/\\]*$\)', '', 'g')
   let head = !empty(head) ? base ==# expand('~') ? '~' : head : ''
   let head .= !empty(head) && !empty(tail) ? s:slash_str : ''
   return head . tail
