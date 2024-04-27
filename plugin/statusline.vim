@@ -5,7 +5,7 @@
 " on the content in each window and integrates with other useful plugins.
 "------------------------------------------------------------------------------
 " Global settings and autocommands
-" Note: For some reason statusline_color must always search b:statusline_filechanged
+" Note: For some reason statusline_update must always search b:statusline_filechanged
 " passing expand('<afile>') then using getbufvar colors statusline in wrong window.
 scriptencoding utf-8  " required for s:mode_names
 set showcmd  " show command line below statusline
@@ -21,15 +21,16 @@ let s:modal_str = {
   \ 'n':  'N', 'no': 'O', 'i':  'I', 'R' : 'R', 'Rv': 'RV', '!' : '!', 't':  'T',
   \ 'v':  'V', 'V' : 'VL', '': 'VB', 's':  'S', 'S' : 'SL', '': 'SB',
   \ 'c':  'C', 'ce': 'CE', 'cv': 'CV', 'r' : 'CP', 'r?': 'CI', 'rm': 'M'}
-augroup statusline_color
+silent! au! statusline_color
+augroup statusline_update
   au!
   au BufEnter,TextChanged,InsertEnter * silent! checktime
   au BufReadPost,BufWritePost,BufNewFile * call setbufvar(expand('<afile>'), 'statusline_filechanged', 0)
   au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
-  au FileChangedShell * call s:statusline_color(mode() =~? '^[ir]')  " triggers after
-  au BufEnter,TextChanged * call s:statusline_color(mode() =~? '^[ir]')
-  au InsertEnter * call s:statusline_color(1)
-  au InsertLeave * call s:statusline_color(0)
+  au FileChangedShell * call s:statusline_update(mode() =~? '^[ir]')  " triggers after
+  au BufEnter,TextChanged * call s:statusline_update(mode() =~? '^[ir]')
+  au InsertEnter * call s:statusline_update(1)
+  au InsertLeave * call s:statusline_update(0)
 augroup END
 
 " Public functions used to fill the statusline.
@@ -38,11 +39,11 @@ function! RelativePath(...) abort
   return call('s:relative_path', a:000)
 endfunction
 function! StatusRight() abort
-  return s:info_cursor()
+  return s:statusline_loc()
 endfunction
 function! StatusLeft() abort
   let line = ''
-  let funcs = ['s:info_path', 's:info_git', 's:info_file', 's:info_vim']
+  let funcs = ['s:statusline_path', 's:statusline_git', 's:statusline_file', 's:statusline_vim']
   let maxsize = winwidth(0) - strwidth(StatusRight()) - 1
   for ifunc in funcs  " note cannot use function() handles for locals
     let part = call(ifunc, [])
@@ -61,7 +62,7 @@ endfunction
 " Generate default statusline colors using colorsheme
 " Note: This is needed for GUI vim color schemes since they do not use cterm codes. See
 " https://vi.stackexchange.com/a/20757/8084 https://stackoverflow.com/a/27870856/4970632
-function! s:default_color(code, ...) abort
+function! s:statusline_color(code, ...) abort
   let default = a:code ==# 'fg' ? '#ffffff' : '#000000'
   let hex = synIDattr(hlID('Normal'), a:code . '#')  " request conversion to hex
   let hex = empty(hex) ? default : hex
@@ -80,12 +81,12 @@ endfunction
 " Highlight statusline dependent on various settings
 " Note: Redraw required for CmdlineEnter,CmdlinLeave slow for large files and can
 " trigger for maps, so leave alone. See: https://github.com/neovim/neovim/issues/7583
-function! s:statusline_color(highlight) abort
+function! s:statusline_update(invert) abort
   let name = has('gui_running') ? 'gui' : 'cterm'
   let flag = has('gui_running') ? '#be0119' : 'Red'  " copied from xkcd scarlet
-  let gray = has('gui_running') ? s:default_color('bg', 1.0) : 'Gray'
-  let black = has('gui_running') ? s:default_color('bg', 1) : 'Black'
-  let white = has('gui_running') ? s:default_color('fg', 0) : 'White'
+  let gray = has('gui_running') ? s:statusline_color('bg', 1.0) : 'Gray'
+  let black = has('gui_running') ? s:statusline_color('bg', 1) : 'Black'
+  let white = has('gui_running') ? s:statusline_color('fg', 0) : 'White'
   let none = has('gui_running') ? 'background' : 'None'  " see :help guibg
   if getbufvar('%', 'fugitive_type', '') ==# 'blob'
     let front = black
@@ -93,10 +94,10 @@ function! s:statusline_color(highlight) abort
   elseif getbufvar('%', 'statusline_filechanged', 0)
     let front = white
     let back = flag
-  elseif a:highlight
+  elseif a:invert  " inverted
     let front = black
     let back = white
-  else
+  else  " standard
     let front = white
     let back = black
   endif
@@ -112,7 +113,7 @@ endfunction
 
 " Return path base using gutentags or fugitive
 " Note: This shows paths relative to root and with truncated git hashes
-function! s:find_base(path, ...) abort
+function! s:symlink_base(path, ...) abort
   let cwd = getcwd()
   let glob = a:0 ? fnamemodify(a:1, ':p') : expand('~')
   let pairs = []  " matching links
@@ -156,7 +157,7 @@ function! s:root_base(path) abort
     let root = path_in_root && !path_in_cwd ? root : ''
   endif
   if empty(root)  " fallback to default method
-    return s:find_base(a:path)
+    return s:symlink_base(a:path)
   else  " use this root with inferred head
     return [fnamemodify(root, ':h'), '']
   endif
@@ -177,7 +178,7 @@ function! s:relative_path(path, ...) abort
   elseif a:0 && !type(a:1) && a:1  " e.g. repo/foo/bar/baz for git repository
     let [base, head] = s:root_base(path)
   else  " e.g. ~/icloud for icloud files or getcwd() otherwise
-    let [base, head] = s:find_base(path)
+    let [base, head] = s:symlink_base(path)
   endif
   while strpart(path, 0, len(base)) !=# base  " false if link was fond
     let ibase = fnamemodify(base, ':h')
@@ -203,7 +204,7 @@ endfunction
 
 " Current path name relative to base with truncated segments
 " See: https://github.com/blueyed/dotfiles/blob/master/vimrc#L396
-function! s:info_path() abort
+function! s:statusline_path() abort
   let raw = '' " used for symlink check
   let path = s:relative_path(expand('%'), 1)
   let parts = split(path, '\ze\' . s:slash_str)
@@ -250,7 +251,7 @@ endfunction
 
 " Return column number, current line number, total line number, and percentage
 " Include 'current' tag kind and name from lukelbd/vim-tags or preservim/tagbar
-function! s:info_cursor() abort
+function! s:statusline_loc() abort
   let maxlen = 20  " can be changed
   if exists('*tags#current_tag')
     let info = tags#current_tag()
@@ -272,7 +273,7 @@ endfunction
 
 " Return git branch and unstaged modification hunks
 " Note: This was adapated from tpope/vim-fugitive and airblade/vim-gitgutter
-function! s:info_git() abort
+function! s:statusline_git() abort
   if exists('*FugitiveHead')
     let info = FugitiveHead()  " possibly empty
   else
@@ -295,7 +296,7 @@ endfunction
 
 " Return file type and size in human-readable units
 " Note: Returns zero bytes for buffers not associated with files
-function! s:info_file() abort
+function! s:statusline_file() abort
   if empty(&l:filetype)
     let info = 'unknown:'
   else
@@ -320,7 +321,7 @@ endfunction
 
 " Return mode including paste mode indicator and session status
 " Previously tested existence of ObsessionStatus but this caused race condition
-function! s:info_vim() abort
+function! s:statusline_vim() abort
   let code = &l:spelllang
   if &l:paste  " 'p' for paste
     let info = 'P'
