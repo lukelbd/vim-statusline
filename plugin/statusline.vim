@@ -327,7 +327,7 @@ function! s:statusline_vim() abort
     let info = get(s:mode_strings, mode(), '?')
   endif
   if &l:foldenable && &l:foldlevel < 10
-    let info .= ':Z' . &l:foldlevel
+    let info .= ':Z' . (&l:foldlevel + 1)
   endif
   if &l:spell && code =~? 'en_[a-z]\+'
     let info .= ':' . substitute(code, '\c^en_\([a-z]\+\).*$', '\1', '')
