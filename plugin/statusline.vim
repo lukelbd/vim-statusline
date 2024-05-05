@@ -188,12 +188,14 @@ function! s:relative_path(path, ...) abort
     let base = ibase  " ascend to shared directory
     let head .= (empty(head) ? '' : s:slash_str) . '..'
   endwhile
-  if empty(base)  " fallback e.g. for base itself
+  if strpart(expand('~'), 0, len(base)) ==# base
+    let base = ''  " base inside or above home
+  endif
+  if empty(base)  " fallback expansion
     return fnamemodify(path, ':~:.')
   endif
   let tail = strpart(path, len(base))  " then remove slash
   let tail = substitute(tail, '\(^[/\\]*\|[/\\]*$\)', '', 'g')
-  let head = !empty(head) ? base ==# expand('~') ? '~' : head : ''
   let head .= !empty(head) && !empty(tail) ? s:slash_str : ''
   return head . tail
 endfunction
