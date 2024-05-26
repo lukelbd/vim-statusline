@@ -1,13 +1,12 @@
 "------------------------------------------------------------------------------
-" Author: Luke Davis (lukelbd@gmail.com)
-" Date:   2018-09-03
-" A minimal, informative, black-and-white statusline that helps keep focus
-" on the content in each window and integrates with other useful plugins.
+" A minimal, informative, black-and-white statusline
 "------------------------------------------------------------------------------
-" Global settings and autocommands
-" Note: For some reason statusline_update must always search b:statusline_filechanged
-" passing expand('<afile>') then using getbufvar colors statusline in wrong window.
-scriptencoding utf-8  " required for s:mode_strings
+" Global settings
+" Author: Luke Davis (lukelbd@gmail.com)
+" This plugin uses a simple black-and-white style that helps retain focus on the syntax
+" highlighting in your window, shows filenames relative to base fugitive or gutentags
+" root directories, and provides info on folding, unstaged changes, and nearby tags.
+scriptencoding utf-8  " {{{{
 set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
@@ -20,7 +19,11 @@ let s:maxlen_piece = 10  " truncate path pieces (seperated by dot/hypen/undersco
 let s:mode_strings = {
   \ 'n':  'N', 'no': 'O', 'i':  'I', 'R' : 'R', 'Rv': 'RV', '!' : '!', 't':  'T',
   \ 'v':  'V', 'V' : 'VL', '': 'VB', 's':  'S', 'S' : 'SL', '': 'SB',
-  \ 'c':  'C', 'ce': 'CE', 'cv': 'CV', 'r' : 'CP', 'r?': 'CI', 'rm': 'M'}
+  \ 'c':  'C', 'ce': 'CE', 'cv': 'CV', 'r' : 'CP', 'r?': 'CI', 'rm': 'M'}  " }}}
+
+" Global autocommands
+" Note: For some reason statusline_update must always search b:statusline_filechanged
+" passing expand('<afile>') then using getbufvar colors statusline in wrong window.
 silent! au! statusline_color
 augroup statusline_update
   au!
@@ -272,24 +275,20 @@ endfunction
 " Return git branch and unstaged modification hunks
 " Note: This was adapated from tpope/vim-fugitive and airblade/vim-gitgutter
 function! s:statusline_git() abort
-  if exists('*FugitiveHead')
-    let info = FugitiveHead()  " possibly empty
-  else
+  if !exists('*FugitiveHead')
     let info = ''
+  else  " show length-7 hash if head is detached
+    let info = FugitiveHead(7)
   endif
-  if exists('*GitGutterGetHunkSummary')
+  if !exists('*GitGutterGetHunkSummary')
+    let [acnt, mcnt, rcnt] = [0, 0, 0]
+  else  " show non-empty change types
     let [acnt, mcnt, rcnt] = GitGutterGetHunkSummary()
-    let pairs = [['+', acnt], ['~', mcnt], ['-', rcnt]]
-    for [key, cnt] in pairs
-      if empty(cnt) | continue | endif
-      let info .= key . cnt
-    endfor
   endif
-  if empty(info)
-    return info
-  else
-    return ' (' . info . ')'
-  endif
+  for [key, cnt] in [['+', acnt], ['~', mcnt], ['-', rcnt]]
+    let info .= empty(cnt) ? '' : key . cnt
+  endfor
+  return empty(info) ? info : ' (' . info . ')'
 endfunction
 
 " Return file type and size in human-readable units
