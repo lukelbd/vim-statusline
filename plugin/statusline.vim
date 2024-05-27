@@ -159,11 +159,9 @@ function! s:root_base(path) abort
     let path_in_root = strpart(a:path, 0, len(root)) ==# root
     let root = path_in_root && !path_in_cwd ? root : ''
   endif
-  if empty(root)  " fallback to default method
-    return s:symlink_base(a:path)
-  else  " use this root with inferred head
-    return [fnamemodify(root, ':h'), '']
-  endif
+  let [base, head] = s:symlink_base(a:path)
+  let root = empty(root) ? '' : fnamemodify(root, ':h')
+  return strwidth(base) > strwidth(root) ? [base, head] : [root, '']
 endfunction
 
 " Return path relative to root or relative to working directory using '..'
