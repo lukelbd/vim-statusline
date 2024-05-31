@@ -231,11 +231,11 @@ function! s:statusline_path() abort
         let parts[idx] = part
       endif
     endif
-    if getftype(raw) ==# 'link'  " symlink redirect
+    if getftype(expand(raw)) ==# 'link'  " symlink redirect
       if s:slash_str ==# part[0]
-        let part = s:slash_str . '↪ ' . part[1:]
+        let part = s:slash_str . '↪' . part[1:]
       else
-        let part = '↪ ' . part
+        let part = '↪' . part
       endif
       let parts[idx] = part
     endif
