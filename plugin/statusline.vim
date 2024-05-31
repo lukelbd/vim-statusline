@@ -241,6 +241,7 @@ function! s:statusline_path() abort
     endif
   endfor
   let path = join(parts, '')
+  let path .= &modified ? '*' : ''
   let width = strwidth(path)
   if width > s:maxlen_abs  " including multi-byte characters e.g. symlink
     let path = strcharpart(path, width - s:maxlen_abs)
