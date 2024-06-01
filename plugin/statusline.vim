@@ -6,9 +6,9 @@
 " This plugin uses a simple black-and-white style that helps retain focus on the syntax
 " highlighting in your window, shows filenames relative to base fugitive or gutentags
 " root directories, and provides info on folding, unstaged changes, and nearby tags.
-if exists('g:loaded_statusline') | finish | endif
-let g:loaded_statusline = 1
-scriptencoding utf-8  " {{{
+scriptencoding utf-8
+exe exists('g:loaded_statusline') ? 'finish' : ''
+let g:loaded_statusline = 1  " {{{
 set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
