@@ -6,7 +6,9 @@
 " This plugin uses a simple black-and-white style that helps retain focus on the syntax
 " highlighting in your window, shows filenames relative to base fugitive or gutentags
 " root directories, and provides info on folding, unstaged changes, and nearby tags.
-scriptencoding utf-8  " {{{{
+if exists('g:loaded_statusline') | finish | endif
+let g:loaded_statusline = 1
+scriptencoding utf-8  " {{{
 set showcmd  " show command line below statusline
 set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
@@ -24,7 +26,7 @@ let s:mode_strings = {
 " Global autocommands
 " Note: For some reason statusline_update must always search b:statusline_filechanged
 " passing expand('<afile>') then using getbufvar colors statusline in wrong window.
-silent! au! statusline_color
+silent! exe 'au! statusline_color'
 augroup statusline_update
   au!
   au BufEnter,TextChanged,InsertEnter * silent! checktime
