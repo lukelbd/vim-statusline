@@ -326,7 +326,7 @@ function! s:statusline_vim() abort
   elseif &l:iminsert  " 'l' for langmap
     let info = 'L'
   else  " default mode
-    let info = get(s:mode_strings, mode(), '?')
+    let info = get(s:mode_strings, mode(1), '?')
   endif
   if &l:foldenable && &l:foldlevel < 10
     let info .= ':Z' . &l:foldlevel
