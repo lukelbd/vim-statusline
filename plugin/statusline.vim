@@ -320,7 +320,6 @@ endfunction
 " Return mode including paste mode indicator and session status
 " Previously tested existence of ObsessionStatus but this caused race condition
 function! s:statusline_vim() abort
-  let code = &l:spelllang
   if &l:paste  " 'p' for paste
     let info = 'P'
   elseif &l:iminsert  " 'l' for langmap
@@ -328,13 +327,16 @@ function! s:statusline_vim() abort
   else  " default mode
     let info = get(s:mode_strings, mode(1), '?')
   endif
+  if exists('g:reveal_cache')  " internal method
+    let info .= '*'
+  endif
   if &l:foldenable && &l:foldlevel < 10
     let info .= ':Z' . &l:foldlevel
   endif
-  if &l:spell && code =~? 'en_[a-z]\+'
-    let info .= ':' . substitute(code, '\c^en_\([a-z]\+\).*$', '\1', '')
+  if &l:spell && &l:spelllang =~? 'en_[a-z]\+'
+    let info .= ':' . substitute(&l:spelllang, '\c^en_\([a-z]\+\).*$', '\1', '')
   elseif &l:spell
-    let info .= ':' . substitute(code, '\c[^a-z].*$', '', '')
+    let info .= ':' . substitute(&l:spelllang, '\c[^a-z].*$', '', '')
   endif
   if empty(v:this_session)
     let flag = ''
