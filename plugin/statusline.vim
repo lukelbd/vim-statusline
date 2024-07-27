@@ -327,11 +327,9 @@ function! s:statusline_vim() abort
   else  " default mode
     let info = get(s:mode_strings, mode(1), '?')
   endif
-  if exists('g:reveal_cache')  " internal method
-    let info .= '*'
-  endif
   if &l:foldenable && &l:foldlevel < 10
-    let info .= ':Z' . &l:foldlevel
+    let info .= ':' . &l:foldlevel . 'Z'
+    let info .= exists('b:reveal_cache') ? '*' : ''
   endif
   if &l:spell && &l:spelllang =~? 'en_[a-z]\+'
     let info .= ':' . substitute(&l:spelllang, '\c^en_\([a-z]\+\).*$', '\1', '')
@@ -340,10 +338,15 @@ function! s:statusline_vim() abort
   endif
   if empty(v:this_session)
     let flag = ''
-  elseif exists('g:this_obsession')
-    let flag = ' [$]'
-  else
-    let flag = ' [S]'
+  elseif !exists('g:this_obsession')
+    let flag = 'S'
+  else  " obsession status
+    let flag = '$'
   endif
-  return  toupper(' [' . info . ']' . flag)
+  if exists('#autosave_' . bufnr() . '#TextChanged')
+    let flag .= '*'  " autosave augroup
+  endif
+  let info = empty(info) ? info : ' [' . info . ']'
+  let flag = empty(flag) ? flag : ' [' . flag . ']'
+  return toupper(info . flag)
 endfunction
