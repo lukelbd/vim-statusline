@@ -14,8 +14,9 @@ set noshowmode  " no mode indicator in command line (use the statusline instead)
 set laststatus=2  " always show status line even in last window
 set statusline=%{StatusLeft()}\ %=%{StatusRight()}
 let s:slash_str = !has('win32') && !has('win64') || exists('+shellslash') && &shellslash ? '/' : '\'
-let s:maxlen_abs = 40  " maximum length after truncation
-let s:maxlen_raw = 20  " maximum length without truncation
+let s:maxlen_tag = 20  " maximum length for tag indicator
+let s:maxlen_abs = 40  " maximum path length after truncation
+let s:maxlen_raw = 20  " maximum path length with no truncation
 let s:maxlen_part = 15  " truncate path parts (directories and filename)
 let s:maxlen_piece = 10  " truncate path pieces (seperated by dot/hypen/underscore)
 let s:mode_strings = {
@@ -254,7 +255,6 @@ endfunction
 " Return column number, current line number, total line number, and percentage
 " Include 'current' tag kind and name from lukelbd/vim-tags or preservim/tagbar
 function! s:statusline_loc() abort
-  let maxlen = 20  " can be changed
   if exists('*tags#current_tag')
     let info = tags#current_tag()
   elseif exists('*tagbar#currenttag')
@@ -262,11 +262,14 @@ function! s:statusline_loc() abort
   else
     let info = ''
   endif
-  if strwidth(info) > maxlen
-    let info = strcharpart(info, 0, maxlen - 1) . '·'
+  let index = matchstr(info, '\*\d\+$')  " stack index
+  let width = s:maxlen_tag - strchars(index)
+  let info = strcharpart(info, 0, strchars(info) - strchars(index))
+  if strwidth(info) > width
+    let info = strcharpart(info, 0, width - 1) . '·'
   endif
   if !empty(info)
-    let info = '[' . info . '] '
+    let info = '[' . info . index . '] '
   endif
   let absolute = line('.') . '/' . line('$') . ':' . col('.')
   let relative = (100 * line('.') / line('$')) . '%'
