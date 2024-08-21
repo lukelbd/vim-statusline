@@ -255,6 +255,9 @@ endfunction
 " Return column number, current line number, total line number, and percentage
 " Include 'current' tag kind and name from lukelbd/vim-tags or preservim/tagbar
 function! s:statusline_loc() abort
+  let stack = gettagstack()
+  let ntag = get(stack, 'length', 0)
+  let itag = get(stack, 'curidx', ntag + 1)
   if exists('*tags#current_tag')
     let info = tags#current_tag()
   elseif exists('*tagbar#currenttag')
@@ -262,14 +265,13 @@ function! s:statusline_loc() abort
   else
     let info = ''
   endif
-  let index = matchstr(info, '\(:\d\+\)*$')  " stack index
-  let width = s:maxlen_tag - strchars(index)
-  let info = strcharpart(info, 0, strchars(info) - strchars(index))
-  if strwidth(info) > width
-    let info = strcharpart(info, 0, width - 1) . '·'
+  let info .= !empty(info) && itag <= ntag ? ':' . (ntag - itag + 1) : ''
+  let suffix = matchstr(info, '\(:\d\+\)*\*\?$')  " optional stack index
+  if strchars(info) - strchars(suffix) > s:maxlen_tag
+    let info = strcharpart(info, 0, s:maxlen_tag - 1) . '·' . suffix
   endif
   if !empty(info)
-    let info = '[' . info . index . '] '
+    let info = '[' . info . '] '
   endif
   let [cnum, lnum, lmax] = [col('.'), line('.'), line('$')]
   let ratio = (100 * lnum / lmax) . '%'
