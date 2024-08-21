@@ -262,7 +262,7 @@ function! s:statusline_loc() abort
   else
     let info = ''
   endif
-  let index = matchstr(info, '\*\d\+$')  " stack index
+  let index = matchstr(info, '\*\d\+\(:\d\+\)\?$')  " stack index
   let width = s:maxlen_tag - strchars(index)
   let info = strcharpart(info, 0, strchars(info) - strchars(index))
   if strwidth(info) > width
