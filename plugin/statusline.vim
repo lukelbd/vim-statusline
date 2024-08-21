@@ -338,7 +338,7 @@ function! s:statusline_vim() abort
     let info = get(s:mode_strings, mode(1), '?')
   endif
   if &l:foldenable && &l:foldlevel < 10
-    let info .= ':' . &l:foldlevel . 'Z'
+    let info .= ':' . 'Z' . &l:foldlevel
     let info .= exists('b:reveal_cache') ? '*' : ''
   endif
   if &l:spell && &l:spelllang =~? 'en_[a-z]\+'
