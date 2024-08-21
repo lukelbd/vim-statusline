@@ -271,9 +271,16 @@ function! s:statusline_loc() abort
   if !empty(info)
     let info = '[' . info . index . '] '
   endif
-  let absolute = line('.') . '/' . line('$') . ':' . col('.')
-  let relative = (100 * line('.') / line('$')) . '%'
-  return info . '[' . absolute . '] (' . relative . ')'
+  let [cnum, lnum, lmax] = [col('.'), line('.'), line('$')]
+  let ratio = (100 * lnum / lmax) . '%'
+  let index = lnum . '/' . lmax . ':' . cnum
+  let [jumps, idx] = getjumplist()
+  let index .= idx < len(jumps) ? ':' . (len(jumps) - idx) : ''
+  let [changes, idx] = getchangelist()
+  let index .= idx < len(changes) ? ':' . (len(changes) - idx) : ''
+  let info .= '[' . index . ']'
+  let info .= ' (' . ratio . ')'
+  return info
 endfunction
 
 " Return git branch and unstaged modification hunks
