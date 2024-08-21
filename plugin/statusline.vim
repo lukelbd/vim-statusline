@@ -256,30 +256,32 @@ endfunction
 " Include 'current' tag kind and name from lukelbd/vim-tags or preservim/tagbar
 function! s:statusline_loc() abort
   let stack = gettagstack()
+  let tags = get(b:, 'tags_by_line', [])  " vim-tags info
   let ntag = get(stack, 'length', 0)
-  let itag = get(stack, 'curidx', ntag + 1)
-  if exists('*tags#current_tag')
-    let info = tags#current_tag()
-  elseif exists('*tagbar#currenttag')
-    let info = tagbar#currenttag()
-  else
-    let info = ''
+  let itag = min([ntag, get(stack, 'curidx', ntag)])
+  let name = ''
+  if exists('*tags#current_tag')  " cursor tag
+    let name = tags#current_tag()
+  elseif exists('*tagbar#currenttag')  " cursor tag
+    let name = tagbar#currenttag()
   endif
-  let info .= !empty(info) && itag <= ntag ? ':' . (ntag - itag + 1) : ''
-  let suffix = matchstr(info, '\(:\d\+\)*\*\?$')  " optional stack index
-  if strchars(info) - strchars(suffix) > s:maxlen_tag
-    let info = strcharpart(info, 0, s:maxlen_tag - 1) . '·' . suffix
+  if empty(tags) && empty(name) && ntag > 0  " stack index
+    let name = stack.items[itag - 1]['tagname']
+    let name = substitute(name, '@\a\{2}$', '', '')
+    let name = substitute(name, '^[''"]\(.\+\)[''"]$', '\1', '')
+    let name .= ':' . (ntag - itag + 1)
   endif
-  if !empty(info)
-    let info = '[' . info . '] '
-  endif
+  let tail = matchstr(name, '\(:\d\+\)*\*\?$')  " stack index
+  let [cnt, max] = [strchars(name) - strchars(tail), s:maxlen_tag]
+  let name = cnt > max ? strcharpart(name, 0, max - 1) . '·' . tail : name
   let [cnum, lnum, lmax] = [col('.'), line('.'), line('$')]
-  let ratio = (100 * lnum / lmax) . '%'
   let index = lnum . '/' . lmax . ':' . cnum
   let [jumps, idx] = getjumplist()
   let index .= idx < len(jumps) ? ':' . (len(jumps) - idx) : ''
   let [changes, idx] = getchangelist()
   let index .= idx < len(changes) ? ':' . (len(changes) - idx) : ''
+  let ratio = (100 * lnum / lmax) . '%'
+  let info = !empty(name) ? '[' . name . '] ' : ''
   let info .= '[' . index . ']'
   let info .= ' (' . ratio . ')'
   return info
