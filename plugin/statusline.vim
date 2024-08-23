@@ -25,14 +25,13 @@ let s:mode_strings = {
   \ 'c':  'C', 'ce': 'CE', 'cv': 'CV', 'r' : 'CP', 'r?': 'CI', 'rm': 'M'}  " }}}
 
 " Global autocommands
-" Note: For some reason statusline_update must always search b:statusline_filechanged
-" passing expand('<afile>') then using getbufvar colors statusline in wrong window.
+" Note: Here algorithm for detecting file changes is identical to vim-tabline
 silent! exe 'au! statusline_color'
 augroup statusline_update
   au!
-  au BufEnter,TextChanged,InsertEnter * silent! checktime
-  au BufReadPost,BufWritePost,BufNewFile * call setbufvar(expand('<afile>'), 'statusline_filechanged', 0)
-  au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_filechanged', 1)
+  au BufEnter,InsertEnter,TextChanged * silent! checktime
+  au FileChangedShell * call setbufvar(expand('<afile>'), 'statusline_file_changed', 1)
+  au BufReadPost,BufWritePost * call setbufvar(expand('<afile>'), 'statusline_file_changed', 0)
   au FileChangedShell * call s:statusline_update(mode() =~? '^[ir]')  " triggers after
   au BufEnter,TextChanged * call s:statusline_update(mode() =~? '^[ir]')
   au InsertEnter * call s:statusline_update(1)
@@ -40,7 +39,7 @@ augroup statusline_update
 augroup END
 
 " Public functions used to fill the statusline.
-" Note: Add public relative path function for dotfiles repo
+" Note: Here public relative path function used in dotfiles repo
 function! RelativePath(...) abort
   return call('s:relative_path', a:000)
 endfunction
@@ -97,7 +96,7 @@ function! s:statusline_update(invert) abort
   if getbufvar('%', 'fugitive_type', '') ==# 'blob'
     let front = black
     let back = flag
-  elseif getbufvar('%', 'statusline_filechanged', 0)
+  elseif getbufvar('%', 'statusline_file_changed', 0)
     let front = white
     let back = flag
   elseif a:invert  " inverted
