@@ -34,10 +34,8 @@ augroup statusline_update
   au BufReadPost,BufWritePost * call setbufvar(expand('<afile>'), 'statusline_file_changed', 0)
   au FileChangedShell * call s:statusline_update(mode() =~? '^[irc]')  " triggers after
   au BufEnter,TextChanged * call s:statusline_update(mode() =~? '^[irc]')
-  au CmdlineEnter * if mode() !~? '^[ir]' | call s:statusline_update(1) | endif
-  au CmdlineLeave * if mode() !~? '^[ir]' | call s:statusline_update(0) | endif
-  au InsertEnter * call s:statusline_update(1)
-  au InsertLeave * call s:statusline_update(0)
+  au ModeChanged [cirR]*:[^cirR]* call s:statusline_update(0)
+  au ModeChanged [^cirR]*:[cirR]* call s:statusline_update(1)
 augroup END
 
 " Public functions used to fill the statusline.
