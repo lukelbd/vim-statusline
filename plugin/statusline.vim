@@ -308,9 +308,11 @@ endfunction
 " Return file type and size in human-readable units
 " Note: Returns zero bytes for buffers not associated with files
 function! s:statusline_file() abort
-  if empty(&l:filetype)
+  if empty(&l:filetype)  " unknown filetype
     let info = 'unknown:'
-  else
+  elseif &l:filetype =~# '^rcsv_\w\+$'  " rainbow csv plugin
+    let info = 'rcsv:'
+  else  " default format
     let info = &l:filetype . ':'
   endif
   let bytes = getfsize(expand('%:p'))
